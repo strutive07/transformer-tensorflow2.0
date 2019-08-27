@@ -38,14 +38,14 @@ class DataLoader:
         self.download_dataset()
 
         print('#2 load data')
-        vocab_source, vocab_target = self.load_vocab()
+        word2idx_source, idx2word_source, word2idx_target, idx2word_target = self.load_vocab()
 
         source_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][0]))
         target_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][1]))
 
         print('#3 tokenize data')
-        source_sequences, source_tokenizer = self.tokenize(source_data, vocab_source)
-        target_sequences, target_tokenizer = self.tokenize(target_data, vocab_target)
+        source_sequences, source_tokenizer = self.tokenize(source_data, word2idx_source, idx2word_source)
+        target_sequences, target_tokenizer = self.tokenize(target_data, word2idx_target, idx2word_target)
 
         return source_sequences, source_tokenizer, target_sequences, target_tokenizer
 
@@ -63,14 +63,21 @@ class DataLoader:
                 urlretrieve(url, path, t.update_to)
 
     def load_vocab(self):
-        vocabs = {
+        word2idxs = {
+            self.CONFIG[self.DATASET]['source_lang']: {},
+            self.CONFIG[self.DATASET]['target_lang']: {}
+        }
+
+        idx2words = {
             self.CONFIG[self.DATASET]['source_lang']: {},
             self.CONFIG[self.DATASET]['target_lang']: {}
         }
 
         for vocab_file in self.CONFIG[self.DATASET]['vocab_files']:
-            vocab = {}
-            lang = vocab_file[:-2]
+            word2idx = {}
+            idx2word = {}
+
+            lang = vocab_file[-2:]
             path = os.path.join(self.DIR, vocab_file)
 
             with open(path, 'r', encoding='utf-8') as f:
@@ -79,14 +86,24 @@ class DataLoader:
             if lines is None:
                 raise ValueError('Vocab file is invalid')
 
+            # set padding to index 0
+            word2idx['<pad>'] = 0
+            idx2word[0] = '<pad>'
+
             for index, word in enumerate(lines, start=1):
-                vocab[word] = index
+                word2idx[word] = index
+                idx2word[index] = word
 
-            vocabs[lang] = vocab
+            word2idxs[lang] = word2idx
+            idx2words[lang] = idx2word
 
-        return vocabs[self.CONFIG[self.DATASET]['source_lang']], vocabs[self.CONFIG[self.DATASET]['target_lang']]
+        return (word2idxs[self.CONFIG[self.DATASET]['source_lang']],
+                idx2words[self.CONFIG[self.DATASET]['source_lang']],
+                word2idxs[self.CONFIG[self.DATASET]['target_lang']],
+                idx2words[self.CONFIG[self.DATASET]['target_lang']])
 
     def load_data(self, path):
+        print(f'load data from {path}')
         with open(path, encoding='utf-8') as f:
             lines = f.read().strip().split('\n')
 
@@ -95,17 +112,19 @@ class DataLoader:
 
         return [f"<s> {line} </s>" for line in tqdm(lines)]
 
-    def tokenize(self, data, vocab):
-        tokenizer = tf.keras.preprocessing.text.Tokenizer(filter='', oov_token='unk')
-        tokenizer.word_index = vocab
+    def tokenize(self, data, word2idx, idx2word):
+        tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', oov_token='<unk>')
+        tokenizer.word_index = word2idx
+        tokenizer.index_word = idx2word
         sequences = tokenizer.texts_to_sequences(data)
 
         max_length = max(len(sequence) for sequence in tqdm(sequences))
 
-        sequences = tf.keras.preprocessing.sequence.pad_sequence( # len(sequences), max_length
-            sequences=sequences, maxLen=max_length, padding='post'
+        sequences = tf.keras.preprocessing.sequence.pad_sequences( # len(sequences), max_length
+            sequences=sequences, maxlen=max_length, padding='post'
         )
         return sequences, tokenizer
+    # TODO train, validation split function
 
 
 class TqdmCustom(tqdm):
