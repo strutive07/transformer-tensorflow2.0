@@ -42,7 +42,7 @@ class Transformer(tf.keras.Model):
                 d_model,
                 d_point_wise_ff,
                 dropout_prob
-            )for _ in range(decoder_count)
+            ) for _ in range(decoder_count)
         ]
 
         self.linear = tf.keras.layers.Dense(target_vocab_size)
