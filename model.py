@@ -238,7 +238,7 @@ class ScaledDotProductAttention(tf.keras.layers.Layer):
         
     def call(self, query, key, value, mask=None):
         matmul_q_and_transposed_k = tf.matmul(query, key, transpose_b=True)
-        scale = tf.sqrt(tf.cast(self.query[-1], dtype=tf.float32))
+        scale = tf.sqrt(tf.cast(tf.shape(self.query)[-1], dtype=tf.float32))
         scaled_attention_score = matmul_q_and_transposed_k / scale
         
         if mask is not None:
@@ -255,7 +255,7 @@ class Embedding_layer(tf.keras.layers.Layer):
         self.vocab_size = vocab_size
         self.d_model = d_model
         
-        self.embedding = tf.keras.layers.Embedding(vocab,size, d_model)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, d_model)
     
     def call(self, sequences):
         max_sequence_len = tf.shape(sequences)[0]
