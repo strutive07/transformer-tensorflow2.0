@@ -4,7 +4,7 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 
 import tensorflow as tf
-
+import pickle
 
 class DataLoader:
     DIR = None
@@ -28,26 +28,35 @@ class DataLoader:
     def __init__(self, dataset_name, data_dir):
         if dataset_name is None or data_dir is None:
             raise ValueError('dataset_name and data_dir must be defined')
-        if not os.path.exists(data_dir):
-            os.makedirs(data_dir)
         self.DIR = data_dir
         self.DATASET = dataset_name
 
     def load(self):
-        print('#1 download data')
-        self.download_dataset()
+        pickle_data_path = os.path.join(self.DIR, 'data.pickle')
+        if os.path.exists(pickle_data_path):
+            with open(pickle_data_path, 'rb') as f:
+                data_dict = pickle.load(f)
+                return (
+                    data_dict['source_sequences'],
+                    data_dict['source_tokenizer'],
+                    data_dict['target_sequences'],
+                    data_dict['target_tokenizer']
+                )
+        else:
+            print('#1 download data')
+            self.download_dataset()
 
-        print('#2 load data')
-        word2idx_source, idx2word_source, word2idx_target, idx2word_target = self.load_vocab()
+            print('#2 load data')
+            word2idx_source, idx2word_source, word2idx_target, idx2word_target = self.load_vocab()
 
-        source_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][0]))
-        target_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][1]))
+            source_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][0]))
+            target_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][1]))
 
-        print('#3 tokenize data')
-        source_sequences, source_tokenizer = self.tokenize(source_data, word2idx_source, idx2word_source)
-        target_sequences, target_tokenizer = self.tokenize(target_data, word2idx_target, idx2word_target)
+            print('#3 tokenize data')
+            source_sequences, source_tokenizer = self.tokenize(source_data, word2idx_source, idx2word_source)
+            target_sequences, target_tokenizer = self.tokenize(target_data, word2idx_target, idx2word_target)
 
-        return source_sequences, source_tokenizer, target_sequences, target_tokenizer
+            return source_sequences, source_tokenizer, target_sequences, target_tokenizer
 
     def download_dataset(self):
         for file in (self.CONFIG[self.DATASET]['train_files']
