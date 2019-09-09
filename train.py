@@ -82,7 +82,6 @@ loss_object = tf.losses.SparseCategoricalCrossentropy(from_logits=True, reductio
 
 import time
 import datetime
-from google.colab import files
 
 current_day = datetime.datetime.now().strftime("%Y%m%d")
 train_log_dir = './logs/gradient_tape/' + current_day + '/train'
@@ -111,9 +110,10 @@ for epoch in range(EPOCHS):
         loss = trainer.train_step(input, target)
         trainer.checkpoint.step.assign_add(1)
         if batch % 50 == 0:
-            print(f"Epoch: {epoch}, Batch: {batch}, "
-                  f"Loss:{trainer.train_loss.result()}, Accuracy: {trainer.train_accuracy.result()}")
-    print(f"Epoch: {epoch} Loss:{trainer.train_loss.result()}, Accuracy: {trainer.train_accuracy.result()}, time: {time.time() - start} sec")
+            print("Epoch: {}, Batch: {}, Loss:{}, Accuracy: {}".format(epoch, batch, trainer.train_loss.result(), trainer.train_accuracy.result()))
+    print("Epoch: {} Loss:{}, Accuracy: {}, time: {} sec". format(
+        epoch, trainer.train_loss.result(), trainer.train_accuracy.result(), time.time() - start
+    ))
     with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', trainer.train_loss.result(), step=epoch)
             tf.summary.scalar('train_accuracy', trainer.train_accuracy.result(), step=epoch)

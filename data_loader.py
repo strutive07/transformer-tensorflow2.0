@@ -63,7 +63,7 @@ class DataLoader:
                      + self.CONFIG[self.DATASET]['vocab_files']
                      + self.CONFIG[self.DATASET]['dictionary_files']
                      + self.CONFIG[self.DATASET]['test_files']):
-            self._download(f"{self.CONFIG[self.DATASET]['base_url']}{file}")
+            self._download("{}{}".format(self.CONFIG[self.DATASET]['base_url'], file))
 
     def _download(self, url):
         path = os.path.join(self.DIR, url.split('/')[-1])
@@ -112,14 +112,14 @@ class DataLoader:
                 idx2words[self.CONFIG[self.DATASET]['target_lang']])
 
     def load_data(self, path):
-        print(f'load data from {path}')
+        print('load data from {}'.format(path))
         with open(path, encoding='utf-8') as f:
             lines = f.read().strip().split('\n')
 
         if lines is None:
             raise ValueError('Vocab file is invalid')
 
-        return [f"<s> {line} </s>" for line in tqdm(lines)]
+        return ["<s> {} </s>".format(line) for line in tqdm(lines)]
 
     def tokenize(self, data, word2idx, idx2word):
         tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', oov_token='<unk>')

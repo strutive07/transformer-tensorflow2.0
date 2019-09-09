@@ -183,8 +183,9 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         if d_model % attention_head_count != 0:
             raise ValueError(
-                f"d_model({d_model}) % attention_head_count({attention_head_count}) is not zero."
-                f"d_model must be multiple of attention_head_count."
+                "d_model({}) % attention_head_count({}) is not zero.d_model must be multiple of attention_head_count.".format(
+                    d_model, attention_head_count
+                )
             )
         
         self.d_h = d_model // attention_head_count
