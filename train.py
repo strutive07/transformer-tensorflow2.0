@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
-data_loader = DataLoader('wmt14/en-de', '/content/drive/My Drive/datasets')
+data_loader = DataLoader('wmt14/en-de', './datasets')
 
 with tf.device('/CPU:0'):
     source_sequences, source_tokenizer, target_sequences, target_tokenizer = data_loader.load()
@@ -85,7 +85,7 @@ import datetime
 from google.colab import files
 
 current_day = datetime.datetime.now().strftime("%Y%m%d")
-train_log_dir = '/content/drive/My Drive/logs/gradient_tape/' + current_day + '/train'
+train_log_dir = './logs/gradient_tape/' + current_day + '/train'
 os.makedirs(train_log_dir, exist_ok=True)
 train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
@@ -127,7 +127,7 @@ for epoch in range(EPOCHS):
 trainer.checkpoint_manager.save()
 
 class Trainer:
-    def __init__(self, model, loss_object, optimizer, checkpoint_dir='/content/drive/My Drive/checkpoints'):
+    def __init__(self, model, loss_object, optimizer, checkpoint_dir='./checkpoints'):
         self.model = model
         self.loss_object = loss_object
         self.optimizer = optimizer
