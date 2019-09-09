@@ -56,6 +56,16 @@ class DataLoader:
             source_sequences, source_tokenizer = self.tokenize(source_data, word2idx_source, idx2word_source)
             target_sequences, target_tokenizer = self.tokenize(target_data, word2idx_target, idx2word_target)
 
+            with open(pickle_data_path, 'wb') as f:
+                data_dict = {
+                    'source_sequences': source_sequences,
+                    'source_tokenizer': source_tokenizer,
+                    'target_sequences': target_sequences,
+                    'target_tokenizer': target_tokenizer
+                }
+
+                pickle.dump(data_dict, f)
+
             return source_sequences, source_tokenizer, target_sequences, target_tokenizer
 
     def download_dataset(self):
