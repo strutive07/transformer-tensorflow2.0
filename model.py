@@ -213,7 +213,6 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         output = self.concat_head(output, batch_size)
         
         return self.ff(output), attention
-        
     
     def split_head(self, tensor, batch_size):
         # input tensor: (batch_size, seq_len, d_model)
@@ -229,9 +228,10 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     
     def concat_head(self, tensor, batch_size):
         return tf.reshape(
-            tf.transpose(tensor, [0, 2, 1, 3]), 
-            (batch_size, -1, self.attention_head_count * self.d_h))
+            tf.transpose(tensor, [0, 2, 1, 3]),
+            (batch_size, -1, self.attention_head_count * self.d_h)
         )
+
 
 class ScaledDotProductAttention(tf.keras.layers.Layer):
     def __init__(self, d_h):
