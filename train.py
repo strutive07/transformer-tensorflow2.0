@@ -10,6 +10,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
+from utils import Mask, CustomSchedule, Trainer
+from data_loader import DataLoader
+from model import *
 
 data_loader = DataLoader('wmt14/en-de', './datasets')
 
@@ -65,7 +68,7 @@ dataset = tf.data.Dataset.from_tensor_slices((source_sequences_train, target_seq
 dataset = dataset.batch(BATCH_SIZE)
 dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
- transformer = Transformer(
+transformer = Transformer(
      input_vocab_size=input_vocab_size,
      target_vocab_size=target_vocab_size,
      encoder_count=ENCODER_COUNT,
@@ -74,7 +77,7 @@ dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
      d_model=D_MODEL,
      d_point_wise_ff=D_POINT_WISE_FF,
      dropout_prob=DROPOUT_PROB
- )
+)
  
 learning_rate = CustomSchedule(D_MODEL)
 optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
@@ -125,55 +128,3 @@ for epoch in range(EPOCHS):
     trainer.validation_loss.reset_states()
     trainer.validation_accuracy.reset_states()
 trainer.checkpoint_manager.save()
-
-class Trainer:
-    def __init__(self, model, loss_object, optimizer, checkpoint_dir='./checkpoints'):
-        self.model = model
-        self.loss_object = loss_object
-        self.optimizer = optimizer
-        self.checkpoint_dir = checkpoint_dir
-        os.makedirs(self.checkpoint_dir, exist_ok=True)
-#         self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer, model=self.model)
-        self.checkpoint = tf.train.Checkpoint(step=tf.Variable(1), optimizer=self.optimizer, model=self.model)
-        self.checkpoint_manager = tf.train.CheckpointManager(self.checkpoint, self.checkpoint_dir, max_to_keep=3)
-        
-        # metrics
-        self.train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
-        self.train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
-        self.validation_loss = tf.keras.metrics.Mean('validation_loss', dtype=tf.float32)
-        self.validation_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('validation_accuracy')
-        
-    def train_step(self, input, target):
-        target_include_start = target[:, :-1]
-        target_include_end = target[:, 1:]
-        encoder_padding_mask, look_ahead_mask, decoder_padding_mask = Mask.create_masks(
-            input, target_include_start
-        )
-        
-        with tf.GradientTape() as tape:
-            pred = self.model.call(
-                input=input,
-                target=target_include_start,
-                input_padding_mask=encoder_padding_mask,
-                look_ahead_mask=look_ahead_mask,
-                target_padding_mask=decoder_padding_mask,
-                training=True
-            )
-            
-            loss = self.loss_function(target_include_end, pred)
-        gradients = tape.gradient(loss, self.model.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
-        
-        self.train_loss(loss)
-        self.train_accuracy(target_include_end, pred)
-        
-        return tf.reduce_mean(loss)
-    
-    def loss_function(self, real, pred):
-        mask = tf.math.logical_not(tf.math.equal(real, 0))
-        loss = self.loss_object(real, pred)
-        
-        mask = tf.cast(mask, dtype=loss.dtype)
-        
-        loss *= mask
-        return tf.reduce_mean(loss)
