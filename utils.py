@@ -40,7 +40,9 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
 
 class Trainer:
-    def __init__(self, model, loss_object, optimizer, checkpoint_dir='./checkpoints'):
+    def __init__(self, model, loss_object, optimizer, checkpoint_dir='./checkpoints', batch_size=None, distribute_strategy=None):
+        self.batch_size = batch_size
+        self.distribute_strategy = distribute_strategy
         self.model = model
         self.loss_object = loss_object
         self.optimizer = optimizer
@@ -55,6 +57,10 @@ class Trainer:
         self.train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
         self.validation_loss = tf.keras.metrics.Mean('validation_loss', dtype=tf.float32)
         self.validation_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('validation_accuracy')
+
+    def distributed_train_step(self, input, target):
+        loss = self.distribute_strategy.experimental_run_v2(self.train_step, args=(input, target))
+        return self.distribute_strategy.reduce(tf.distribute.ReduceOp.MEAN, loss, axis=0)
 
     def train_step(self, input, target):
         target_include_start = target[:, :-1]
@@ -72,15 +78,19 @@ class Trainer:
                 target_padding_mask=decoder_padding_mask,
                 training=True
             )
-
-            loss = self.loss_function(target_include_end, pred)
+            if self.distribute_strategy is None:
+                loss = self.loss_function(target_include_end, pred)
+            else:
+                loss = self.distribute_strategy(target_include_end, pred)
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
         self.train_loss(loss)
         self.train_accuracy(target_include_end, pred)
-
-        return tf.reduce_mean(loss)
+        if self.distribute_strategy is None:
+            return tf.reduce_mean(loss)
+        else:
+            return loss
 
     def loss_function(self, real, pred):
         mask = tf.math.logical_not(tf.math.equal(real, 0))
@@ -90,3 +100,12 @@ class Trainer:
 
         loss *= mask
         return tf.reduce_mean(loss)
+
+    def distributed_loss_function(self, real, pred):
+        mask = tf.math.logical_not(tf.math.equal(real, 0))
+        loss = self.loss_object(real, pred)
+
+        mask = tf.cast(mask, dtype=loss.dtype)
+
+        loss *= mask
+        return tf.reduce_mean(loss) / (1.0 / self.batch_size)
