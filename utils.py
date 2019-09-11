@@ -60,7 +60,8 @@ class Trainer:
 
     def distributed_train_step(self, input, target):
         loss = self.distribute_strategy.experimental_run_v2(self.train_step, args=(input, target))
-        return self.distribute_strategy.reduce(tf.distribute.ReduceOp.MEAN, loss, axis=0)
+        loss_value = self.distribute_strategy.reduce(tf.distribute.ReduceOp.MEAN, loss, axis=None)
+        return tf.reduce_mean(loss_value)
 
     def train_step(self, input, target):
         target_include_start = target[:, :-1]
