@@ -81,7 +81,7 @@ class Trainer:
             if self.distribute_strategy is None:
                 loss = self.loss_function(target_include_end, pred)
             else:
-                loss = self.distribute_strategy(target_include_end, pred)
+                loss = self.distributed_loss_function(target_include_end, pred)
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
