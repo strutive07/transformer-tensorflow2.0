@@ -66,7 +66,7 @@ strategy = tf.distribute.MirroredStrategy()
 
 GLOBAL_BATCH_SIZE = (BATCH_SIZE *
                      strategy.num_replicas_in_sync)
-
+print('GLOBAL_BATCH_SIZE ', GLOBAL_BATCH_SIZE)
 
 buffer_size = int(TRAIN_SET_SIZE * 0.3)
 dataset = tf.data.Dataset.from_tensor_slices((source_sequences_train, target_sequences_train)).shuffle(buffer_size)
