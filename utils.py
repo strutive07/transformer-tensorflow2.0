@@ -60,11 +60,13 @@ class Trainer:
         self.validation_loss = tf.keras.metrics.Mean('validation_loss', dtype=tf.float32)
         self.validation_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('validation_accuracy')
 
+    @tf.function
     def distributed_train_step(self, input, target):
         loss = self.distribute_strategy.experimental_run_v2(self.train_step, args=(input, target))
         loss_value = self.distribute_strategy.reduce(tf.distribute.ReduceOp.MEAN, loss, axis=None)
         return tf.reduce_mean(loss_value)
 
+    @tf.function
     def train_step(self, input, target):
         target_include_start = target[:, :-1]
         target_include_end = target[:, 1:]
@@ -95,6 +97,7 @@ class Trainer:
         else:
             return loss
 
+    @tf.function
     def loss_function(self, real, pred):
         mask = tf.math.logical_not(tf.math.equal(real, 0))
         loss = self.loss_object(real, pred)
@@ -104,6 +107,7 @@ class Trainer:
         loss *= mask
         return tf.reduce_mean(loss)
 
+    @tf.function
     def distributed_loss_function(self, real, pred):
         mask = tf.math.logical_not(tf.math.equal(real, 0))
         loss = self.loss_object(real, pred)
