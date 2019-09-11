@@ -6,6 +6,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # except Exception:
 #     pass
 # !pip install tensorflow_probability==0.8.0rc0 --upgrade
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import numpy as np
 import tensorflow as tf
