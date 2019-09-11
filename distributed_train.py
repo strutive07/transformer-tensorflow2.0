@@ -112,6 +112,7 @@ trainer.checkpoint.restore(
 
 
 with strategy.scope():
+    dataset = strategy.experimental_distribute_dataset(dataset)
     for epoch in range(EPOCHS):
         start = time.time()
         print('start learning')
