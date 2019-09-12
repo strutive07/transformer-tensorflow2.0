@@ -112,4 +112,4 @@ class Trainer:
         mask = tf.cast(mask, dtype=loss.dtype)
 
         loss *= mask
-        return tf.reduce_mean(loss) / (1.0 / self.batch_size)
+        return tf.reduce_mean(loss)
