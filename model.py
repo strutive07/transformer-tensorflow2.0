@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 class Transformer(tf.keras.Model):
     def __init__(self,
