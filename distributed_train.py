@@ -14,6 +14,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from utils import Mask, CustomSchedule, Trainer
 from data_loader import DataLoader
+import datetime
 from model import *
 
 data_loader = DataLoader('wmt14/en-de', './datasets')
@@ -125,8 +126,10 @@ with strategy.scope():
             if batch % 50 == 0:
                 print("Epoch: {}, Batch: {}, Loss:{}, Accuracy: {}".format(epoch, batch, trainer.train_loss.result(),
                                                                            trainer.train_accuracy.result()))
-        print("Epoch: {} Loss:{}, Accuracy: {}, time: {} sec".format(
-            epoch, trainer.train_loss.result(), trainer.train_accuracy.result(), time.time() - start
+            if batch % 10000 == 0 and batch != 0:
+                trainer.checkpoint_manager.save()
+        print("{} | Epoch: {} Loss:{}, Accuracy: {}, time: {} sec".format(
+            datetime.datetime.now(), epoch, trainer.train_loss.result(), trainer.train_accuracy.result(), time.time() - start
         ))
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', trainer.train_loss.result(), step=epoch)
