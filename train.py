@@ -114,6 +114,8 @@ for epoch in range(EPOCHS):
         trainer.checkpoint.step.assign_add(1)
         if batch % 50 == 0:
             print("Epoch: {}, Batch: {}, Loss:{}, Accuracy: {}".format(epoch, batch, trainer.train_loss.result(), trainer.train_accuracy.result()))
+        if batch % 10000 == 0 and batch != 0:
+            trainer.checkpoint_manager.save()
     print("Epoch: {} Loss:{}, Accuracy: {}, time: {} sec". format(
         epoch, trainer.train_loss.result(), trainer.train_accuracy.result(), time.time() - start
     ))
