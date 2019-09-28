@@ -20,7 +20,7 @@ from model import *
 data_loader = DataLoader('wmt14/en-de', './datasets')
 
 with tf.device('/CPU:0'):
-    source_sequences, source_tokenizer, target_sequences, target_tokenizer = data_loader.load()
+    source_sequences, target_sequences = data_loader.load()
 
 input_vocab_size = len(source_tokenizer.word_index) + 1
 target_vocab_size = len(target_tokenizer.word_index) + 1
@@ -44,7 +44,7 @@ DATA_LIMIT = None
 
 with tf.device('/CPU:0'):
     source_sequences_train, source_sequences_val, target_sequences_train, target_sequences_val = train_test_split(
-        source_sequences, target_sequences, train_size=TRAIN_RATIO
+        source_texts, target_texts, train_size=TRAIN_RATIO
     )
 
     if DATA_LIMIT is not None:
@@ -52,16 +52,16 @@ with tf.device('/CPU:0'):
         source_sequences_train = source_sequences_train[:DATA_LIMIT]
         target_sequences_train = target_sequences_train[:DATA_LIMIT]
 
-    print('source_sequences_train', source_sequences_train.shape)
-    print('source_sequences_val', source_sequences_val.shape)
-    print('target_sequences_train', target_sequences_train.shape)
-    print('target_sequences_val', target_sequences_val.shape)
+    print('source_sequences_train', len(source_sequences_train))
+    print('source_sequences_val', len(source_sequences_val))
+    print('target_sequences_train', len(target_sequences_train))
+    print('target_sequences_val', len(target_sequences_val))
 
-    print('train set size: ', source_sequences_train.shape[0])
-    print('validation set size: ', source_sequences_val.shape[0])
-    TRAIN_SET_SIZE = source_sequences_train.shape[0]
-    VALIDATION_SET_SIZE = source_sequences_val.shape[0]
-    SEQUENCE_MAX_LENGTH = source_sequences_val.shape[1]
+    print('train set size: ', len(source_sequences_train))
+    print('validation set size: ', len(source_sequences_val))
+    TRAIN_SET_SIZE = len(source_sequences_train)
+    VALIDATION_SET_SIZE = len(source_sequences_val)
+    SEQUENCE_MAX_LENGTH = len(source_sequences_train[0])
 
 strategy = tf.distribute.MirroredStrategy()
 
