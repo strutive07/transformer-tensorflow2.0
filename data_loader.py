@@ -255,7 +255,7 @@ class DataLoader:
     def create_dataset(self, source_sequences, target_sequences):
         new_source_sequences = []
         new_target_sequences = []
-        for source, target in zip(source, target):
+        for source, target in zip(source_sequences, target_sequences):
             if len(source) > self.SEQ_MAX_LEN['source']:
                 continue
             if len(target) > self.SEQ_MAX_LEN['target']:
