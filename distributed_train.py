@@ -11,16 +11,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import numpy as np
 import tensorflow as tf
-from sklearn.model_selection import train_test_split
 from utils import Mask, CustomSchedule, Trainer
 from data_loader import DataLoader
 import datetime
 from model import *
-
-data_loader = DataLoader('wmt14/en-de', './datasets')
-
-with tf.device('/CPU:0'):
-    source_sequences, target_sequences = data_loader.load()
 
 # hyper paramaters
 TRAIN_RATIO = 0.9
@@ -31,32 +25,14 @@ EPOCHS = 20
 ATTENTION_HEAD_COUNT = 8
 DROPOUT_PROB = 0.1
 BATCH_SIZE = 32
+SEQ_MAX_LEN_SOURCE = 100
+SEQ_MAX_LEN_TARGET = 100
+BPE_VOCAB_SIZE = 32000
 
 # for overfitting test hyper parameters
 # BATCH_SIZE = 32
 # EPOCHS = 100
 DATA_LIMIT = None
-
-with tf.device('/CPU:0'):
-    source_sequences_train, source_sequences_val, target_sequences_train, target_sequences_val = train_test_split(
-        source_sequences, target_sequences, train_size=TRAIN_RATIO
-    )
-
-    if DATA_LIMIT is not None:
-        print('data size limit ON. limit size:', DATA_LIMIT)
-        source_sequences_train = source_sequences_train[:DATA_LIMIT]
-        target_sequences_train = target_sequences_train[:DATA_LIMIT]
-
-    print('source_sequences_train', len(source_sequences_train))
-    print('source_sequences_val', len(source_sequences_val))
-    print('target_sequences_train', len(target_sequences_train))
-    print('target_sequences_val', len(target_sequences_val))
-
-    print('train set size: ', len(source_sequences_train))
-    print('validation set size: ', len(source_sequences_val))
-    TRAIN_SET_SIZE = len(source_sequences_train)
-    VALIDATION_SET_SIZE = len(source_sequences_val)
-    SEQUENCE_MAX_LENGTH = len(source_sequences_train[0])
 
 strategy = tf.distribute.MirroredStrategy()
 
@@ -64,14 +40,22 @@ GLOBAL_BATCH_SIZE = (BATCH_SIZE *
                      strategy.num_replicas_in_sync)
 print('GLOBAL_BATCH_SIZE ', GLOBAL_BATCH_SIZE)
 
-buffer_size = int(TRAIN_SET_SIZE * 0.3)
-dataset = tf.data.Dataset.from_tensor_slices((source_sequences_train, target_sequences_train)).shuffle(buffer_size)
-dataset = dataset.batch(GLOBAL_BATCH_SIZE)
-dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+data_loader = DataLoader(
+    dataset_name='wmt14/en-de',
+    data_dir='./datasets',
+    batch_size=GLOBAL_BATCH_SIZE,
+    bpe_vocab_size=BPE_VOCAB_SIZE,
+    seq_max_len_source=SEQ_MAX_LEN_SOURCE,
+    seq_max_len_target=SEQ_MAX_LEN_TARGET,
+    data_limit=DATA_LIMIT,
+    train_ratio=TRAIN_RATIO
+)
+
+dataset, val_dataset = data_loader.load()
 
 transformer = Transformer(
-    input_vocab_size=input_vocab_size,
-    target_vocab_size=target_vocab_size,
+    input_vocab_size=BPE_VOCAB_SIZE,
+    target_vocab_size=BPE_VOCAB_SIZE,
     encoder_count=ENCODER_COUNT,
     decoder_count=DECODER_COUNT,
     attention_head_count=ATTENTION_HEAD_COUNT,
