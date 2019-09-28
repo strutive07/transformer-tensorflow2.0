@@ -22,11 +22,6 @@ data_loader = DataLoader('wmt14/en-de', './datasets')
 with tf.device('/CPU:0'):
     source_sequences, target_sequences = data_loader.load()
 
-input_vocab_size = len(source_tokenizer.word_index) + 1
-target_vocab_size = len(target_tokenizer.word_index) + 1
-print('input vocab size: ', input_vocab_size)
-print('target vocab size: ', target_vocab_size)
-
 # hyper paramaters
 TRAIN_RATIO = 0.9
 D_POINT_WISE_FF = 2048
