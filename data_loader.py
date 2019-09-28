@@ -101,7 +101,7 @@ class DataLoader:
                      + self.CONFIG[self.DATASET]['vocab_files']
                      + self.CONFIG[self.DATASET]['dictionary_files']
                      + self.CONFIG[self.DATASET]['test_files']):
-            self._download(f"{self.CONFIG[self.DATASET]['base_url']}{file}")
+            self._download("{}{}".format(self.CONFIG[self.DATASET]['base_url'], file))
 
     def _download(self, url):
         path = os.path.join(self.DIR, url.split('/')[-1])
@@ -110,7 +110,7 @@ class DataLoader:
                 urlretrieve(url, path, t.update_to)
     
     def parse_data_and_save(self, path):
-        print(f'load data from {path}')
+        print('load data from {}'.format(path))
         with open(path, encoding='utf-8') as f:
             lines = f.read().strip().split('\n')
 
