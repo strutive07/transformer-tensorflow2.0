@@ -39,7 +39,7 @@ DATA_LIMIT = None
 
 with tf.device('/CPU:0'):
     source_sequences_train, source_sequences_val, target_sequences_train, target_sequences_val = train_test_split(
-        source_texts, target_texts, train_size=TRAIN_RATIO
+        source_sequences, target_sequences, train_size=TRAIN_RATIO
     )
 
     if DATA_LIMIT is not None:
