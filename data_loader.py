@@ -273,6 +273,7 @@ class DataLoader:
         dataset = tf.data.Dataset.from_tensor_slices(
             (source_sequences, target_sequences)
         ).shuffle(buffer_size)
+        dataset = dataset.batch(self.BATCH_SIZE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
         return dataset
