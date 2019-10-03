@@ -51,7 +51,10 @@ class Trainer:
         self.checkpoint_dir = checkpoint_dir
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         #         self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer, model=self.model)
-        self.checkpoint = tf.train.Checkpoint(step=tf.Variable(1), optimizer=self.optimizer, model=self.model)
+        if self.optimizer is None:
+            self.checkpoint = tf.train.Checkpoint(step=tf.Variable(1), model=self.model)
+        else:
+            self.checkpoint = tf.train.Checkpoint(step=tf.Variable(1), optimizer=self.optimizer, model=self.model)
         self.checkpoint_manager = tf.train.CheckpointManager(self.checkpoint, self.checkpoint_dir, max_to_keep=3)
 
         # metrics

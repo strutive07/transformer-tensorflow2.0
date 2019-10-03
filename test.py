@@ -38,7 +38,7 @@ data_loader = DataLoader(
     data_dir='./datasets'
 )
 
-source_data, target_data = data_loader.load_test(index=-1)
+source_data, target_data = data_loader.load_test(index=3)
 data = zip(source_data, target_data)
 
 transformer = Transformer(
