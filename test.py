@@ -18,6 +18,7 @@ from data_loader import DataLoader
 import datetime
 from model import *
 from tqdm import tqdm
+from multiprocessing import Pool
 
 # hyper paramaters
 TRAIN_RATIO = 0.9
@@ -62,17 +63,28 @@ trainer.checkpoint.restore(
     trainer.checkpoint_manager.latest_checkpoint
 )
 
-translated_data = []
+from multiprocessing import Pool
 
-for source, target in tqdm(data):
+
+def do_translate(input):
+    index = input[0]
+    source = input[1][0]
+    target = input[1][1]
+    print(index)
     output = translate(source, data_loader, trainer, SEQ_MAX_LEN_TARGET)
     res = data_loader.sequences_to_texts([output.numpy().tolist()], mode='target')
-    translated_data.append({
+    return {
         'source': source,
         'target': target,
         'output': res
-    })
+    }
+
+pool = Pool(16)
+import time
+start_time = int(time.time())
+translated_data = pool.map(do_translate, enumerate(data))
+print('sec:', time.time() - start_time)
 
 import pickle
 with open('translated_data.pickle', 'wb') as f:
-    pickle.dump(pickle, f)
+    pickle.dump(translated_data, f)
