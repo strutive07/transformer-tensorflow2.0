@@ -63,9 +63,6 @@ trainer.checkpoint.restore(
     trainer.checkpoint_manager.latest_checkpoint
 )
 
-from multiprocessing import Pool
-
-
 def do_translate(input):
     index = input[0]
     source = input[1][0]
@@ -79,11 +76,11 @@ def do_translate(input):
         'output': res
     }
 
-pool = Pool(16)
-import time
-start_time = int(time.time())
-translated_data = pool.map(do_translate, enumerate(data))
-print('sec:', time.time() - start_time)
+translated_data = []
+
+for input in data:
+    res = do_translate(input)
+    translated_data.append(res)
 
 import pickle
 with open('translated_data.pickle', 'wb') as f:
