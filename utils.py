@@ -141,7 +141,7 @@ def translate(input, data_loader, trainer, seq_max_len_target=100):
     decoder_input = tf.expand_dims(decoder_input, 0)
     decoder_end_token = data_loader.dictionary['target']['token2idx']['</s>']
 
-    for i in range(SEQ_MAX_LEN_TARGET):
+    for i in range(seq_max_len_target):
         encoder_padding_mask, look_ahead_mask, decoder_padding_mask = Mask.create_masks(
             encoder_input, decoder_input
         )
