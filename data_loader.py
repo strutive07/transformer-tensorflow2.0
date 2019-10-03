@@ -48,6 +48,9 @@ class DataLoader:
     TRAIN_RATIO = 0.9
     BATCH_SIZE = 16
 
+    source_sp = None
+    target_sp = None
+
     def __init__(self, dataset_name, data_dir, batch_size=16, bpe_vocab_size=32000, seq_max_len_source=100,
                  seq_max_len_target=100, data_limit=None, train_ratio=0.9):
         if dataset_name is None or data_dir is None:
@@ -231,6 +234,31 @@ class DataLoader:
                 f.write(sequence + "\n")
         return sequences
 
+    def encode_data(self, input, mode='source'):
+        if mode != 'source' and mode != 'target':
+            ValueError('not allowed mode.')
+
+        if mode == 'source':
+            if self.source_sp is None:
+                self.source_sp = sentencepiece.SentencePieceProcessor()
+                self.source_sp.load(self.PATHS['source_bpe_prefix'] + self.BPE_MODEL_SUFFIX)
+
+            pieces = self.source_sp.EncodeAsPieces(input)
+            sequence = " ".join(pieces)
+
+            return sequence
+        elif mode == 'target':
+            if self.target_sp is None:
+                self.target_sp = sentencepiece.SentencePieceProcessor()
+                self.target_sp.load(self.PATHS['target_bpe_prefix'] + self.BPE_MODEL_SUFFIX)
+
+            pieces = self.target_sp.EncodeAsPieces(input)
+            sequence = " ".join(pieces)
+
+            return sequence
+        else:
+            ValueError('not allowed mode.')
+
     def load_bpe_vocab(self, bpe_vocab_path):
         vocab = [line.split()[0] for line in open(bpe_vocab_path, 'r').read().splitlines()]
         token2idx = {}
@@ -264,13 +292,16 @@ class DataLoader:
 
         texts = []
         for sequence in sequences:
-            text = [
-                self.dictionary[mode]['idx2token'].get(
-                    idx,
-                    self.dictionary[mode]['idx2token'][1]
-                )
-                for idx in sequence
-            ]
+            if mode == 'source':
+                if self.source_sp is None:
+                    self.source_sp = sentencepiece.SentencePieceProcessor()
+                    self.source_sp.load(self.PATHS['source_bpe_prefix'] + self.BPE_MODEL_SUFFIX)
+                text = self.source_sp.DecodeIds(sequence)
+            else:
+                if self.target_sp is None:
+                    self.target_sp = sentencepiece.SentencePieceProcessor()
+                    self.target_sp.load(self.PATHS['target_bpe_prefix'] + self.BPE_MODEL_SUFFIX)
+                text = self.target_sp.DecodeIds(sequence)
             texts.append(text)
         return texts
 
