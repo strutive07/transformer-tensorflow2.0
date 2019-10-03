@@ -141,13 +141,15 @@ class DataLoader:
         return train_dataset, val_dataset
 
     def load_test(self, index=-1):
+        if index < 0 or index >= len(self.CONFIG[self.DATASET]['test_files']) // 2:
+            ValueError('test file index out of range. min: 0, max: {}'.format(len(self.CONFIG[self.DATASET]['test_files']) // 2 - 1))
         print('#1 download data')
         self.download_dataset()
 
         print('#2 parse data')
 
-        source_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index][0])
-        target_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index][1])
+        source_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index * 2])
+        target_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index * 2 + 1])
 
         source_data = self.parse_data_and_save(source_test_data_path)
         target_data = self.parse_data_and_save(target_test_data_path)
