@@ -42,7 +42,7 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
 
 class Trainer:
-    def __init__(self, model, loss_object, optimizer, checkpoint_dir='./checkpoints', batch_size=None, distribute_strategy=None):
+    def __init__(self, model, loss_object=None, optimizer=None, checkpoint_dir='./checkpoints', batch_size=None, distribute_strategy=None):
         self.batch_size = batch_size
         self.distribute_strategy = distribute_strategy
         self.model = model
@@ -113,3 +113,48 @@ class Trainer:
 
         loss *= mask
         return tf.reduce_mean(loss)
+
+
+def translate(input, data_loader, trainer, seq_max_len_target=100):
+    if data_loader is None:
+        ValueError('data loader is None')
+
+    if trainer is None:
+        ValueError('trainer is None')
+
+    if trainer.model is None:
+        ValueError('model is None')
+
+    if not isinstance(seq_max_len_target, int):
+        ValueError('seq_max_len_target is not int')
+
+    encoded_data = data_loader.encode_data(input, mode='source')
+    encoded_data = data_loader.texts_to_sequences([encoded_data])
+    encoder_input = tf.convert_to_tensor(
+        encoded_data,
+        dtype=tf.int32
+    )
+    decoder_input = [data_loader.dictionary['target']['token2idx']['<s>']]
+    decoder_input = tf.expand_dims(decoder_input, 0)
+    decoder_end_token = data_loader.dictionary['target']['token2idx']['</s>']
+
+    for i in range(SEQ_MAX_LEN_TARGET):
+        encoder_padding_mask, look_ahead_mask, decoder_padding_mask = Mask.create_masks(
+            encoder_input, decoder_input
+        )
+        pred = trainer.model.call(
+            input=encoder_input,
+            target=decoder_input,
+            input_padding_mask=encoder_padding_mask,
+            look_ahead_mask=look_ahead_mask,
+            target_padding_mask=decoder_padding_mask,
+            training=False
+        )
+        pred = pred[:, -1:, :]
+        predicted_id = tf.cast(tf.argmax(pred, axis=-1), dtype=tf.int32)
+
+        if predicted_id == decoder_end_token:
+            return tf.squeeze(decoder_input, axis=0)
+        decoder_input = tf.concat([decoder_input, predicted_id], axis=-1)
+
+    return tf.squeeze(decoder_input, axis=0)

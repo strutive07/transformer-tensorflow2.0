@@ -68,7 +68,6 @@ class DataLoader:
         self.PATHS['target_bpe_prefix'] = self.PATHS['target_data'] + '.segmented'
 
     def load(self):
-        pickle_data_path = os.path.join(self.DIR, 'data.pickle')
         print('#1 download data')
         self.download_dataset()
 
@@ -140,6 +139,23 @@ class DataLoader:
         )
 
         return train_dataset, val_dataset
+
+    def load_test(self, index=-1):
+        print('#1 download data')
+        self.download_dataset()
+
+        print('#2 parse data')
+        source_data = self.parse_data_and_save(self.PATHS['test_files'][index][0])
+        target_data = self.parse_data_and_save(self.PATHS['test_files'][index][1])
+
+        print('#3 load bpe vocab')
+
+        self.dictionary['source']['token2idx'], self.dictionary['source']['idx2token'] = self.load_bpe_vocab(
+            self.PATHS['source_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
+        self.dictionary['target']['token2idx'], self.dictionary['target']['idx2token'] = self.load_bpe_vocab(
+            self.PATHS['target_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
+
+        return source_data, target_data
 
     def download_dataset(self):
         for file in (self.CONFIG[self.DATASET]['train_files']
