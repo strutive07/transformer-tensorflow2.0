@@ -145,8 +145,12 @@ class DataLoader:
         self.download_dataset()
 
         print('#2 parse data')
-        source_data = self.parse_data_and_save(self.PATHS['test_files'][index][0])
-        target_data = self.parse_data_and_save(self.PATHS['test_files'][index][1])
+
+        source_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index][0])
+        target_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index][1])
+
+        source_data = self.parse_data_and_save(source_test_data_path)
+        target_data = self.parse_data_and_save(target_test_data_path)
 
         print('#3 load bpe vocab')
 
