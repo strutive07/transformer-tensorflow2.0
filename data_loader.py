@@ -1,13 +1,26 @@
 import os
+import pickle
 from urllib.request import urlretrieve
 
 from tqdm import tqdm
-
 import tensorflow as tf
-import pickle
+import sentencepiece
+from sklearn.model_selection import train_test_split
 
 class DataLoader:
     DIR = None
+    PATHS = {}
+    BPE_VOCAB_SIZE = 0
+    dictionary = {
+        'source': {
+            'token2idx': None,
+            'idx2token': None,
+        },
+        'target': {
+            'token2idx': None,
+            'idx2token': None,
+        }
+    }
     CONFIG = {
         'wmt14/en-de': {
             'source_lang': 'en',
@@ -24,49 +37,109 @@ class DataLoader:
             ]
         }
     }
+    BPE_MODEL_SUFFIX = '.model'
+    BPE_VOCAB_SUFFIX = '.vocab'
+    BPE_RESULT_SUFFIX = '.sequences'
+    SEQ_MAX_LEN = {
+        'source': 100,
+        'target': 100
+    }
+    DATA_LIMIT = None
+    TRAIN_RATIO = 0.9
+    BATCH_SIZE = 16
 
-    def __init__(self, dataset_name, data_dir):
+    def __init__(self, dataset_name, data_dir, batch_size=16, bpe_vocab_size=32000, seq_max_len_source=100,
+                 seq_max_len_target=100, data_limit=None, train_ratio=0.9):
         if dataset_name is None or data_dir is None:
             raise ValueError('dataset_name and data_dir must be defined')
         self.DIR = data_dir
         self.DATASET = dataset_name
+        self.BPE_VOCAB_SIZE = bpe_vocab_size
+        self.SEQ_MAX_LEN['source'] = seq_max_len_source
+        self.SEQ_MAX_LEN['target'] = seq_max_len_target
+        self.DATA_LIMIT = data_limit
+        self.TRAIN_RATIO = train_ratio
+        self.BATCH_SIZE = batch_size
+
+        self.PATHS['source_data'] = os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][0])
+        self.PATHS['source_bpe_prefix'] = self.PATHS['source_data'] + '.segmented'
+
+        self.PATHS['target_data'] = os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][1])
+        self.PATHS['target_bpe_prefix'] = self.PATHS['target_data'] + '.segmented'
 
     def load(self):
         pickle_data_path = os.path.join(self.DIR, 'data.pickle')
-        if os.path.exists(pickle_data_path):
-            with open(pickle_data_path, 'rb') as f:
-                data_dict = pickle.load(f)
-                return (
-                    data_dict['source_sequences'],
-                    data_dict['source_tokenizer'],
-                    data_dict['target_sequences'],
-                    data_dict['target_tokenizer']
-                )
-        else:
-            print('#1 download data')
-            self.download_dataset()
+        print('#1 download data')
+        self.download_dataset()
 
-            print('#2 load data')
-            word2idx_source, idx2word_source, word2idx_target, idx2word_target = self.load_vocab()
+        print('#2 parse data')
+        source_data = self.parse_data_and_save(self.PATHS['source_data'])
+        target_data = self.parse_data_and_save(self.PATHS['target_data'])
 
-            source_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][0]))
-            target_data = self.load_data(os.path.join(self.DIR, self.CONFIG[self.DATASET]['train_files'][1]))
+        print('#3 train bpe')
 
-            print('#3 tokenize data')
-            source_sequences, source_tokenizer = self.tokenize(source_data, word2idx_source, idx2word_source)
-            target_sequences, target_tokenizer = self.tokenize(target_data, word2idx_target, idx2word_target)
+        self.train_bpe(self.PATHS['source_data'], self.PATHS['source_bpe_prefix'])
+        self.train_bpe(self.PATHS['target_data'], self.PATHS['target_bpe_prefix'])
 
-            with open(pickle_data_path, 'wb') as f:
-                data_dict = {
-                    'source_sequences': source_sequences,
-                    'source_tokenizer': source_tokenizer,
-                    'target_sequences': target_sequences,
-                    'target_tokenizer': target_tokenizer
-                }
+        print('#4 load bpe vocab')
 
-                pickle.dump(data_dict, f)
+        self.dictionary['source']['token2idx'], self.dictionary['source']['idx2token'] = self.load_bpe_vocab(
+            self.PATHS['source_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
+        self.dictionary['target']['token2idx'], self.dictionary['target']['idx2token'] = self.load_bpe_vocab(
+            self.PATHS['target_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
 
-            return source_sequences, source_tokenizer, target_sequences, target_tokenizer
+        print('#5 encode data with bpe')
+        source_sequences = self.texts_to_sequences(
+            self.sentence_piece(
+                source_data,
+                self.PATHS['source_bpe_prefix'] + self.BPE_MODEL_SUFFIX,
+                self.PATHS['source_bpe_prefix'] + self.BPE_RESULT_SUFFIX
+            ),
+            mode="source"
+        )
+        target_sequences = self.texts_to_sequences(
+            self.sentence_piece(
+                target_data,
+                self.PATHS['target_bpe_prefix'] + self.BPE_MODEL_SUFFIX,
+                self.PATHS['target_bpe_prefix'] + self.BPE_RESULT_SUFFIX
+            ),
+            mode="target"
+        )
+
+        print('source sequence example:', source_sequences[0])
+        print('target sequence example:', target_sequences[0])
+
+        source_sequences_train, source_sequences_val, target_sequences_train, target_sequences_val = train_test_split(
+            source_sequences, target_sequences, train_size=self.TRAIN_RATIO
+        )
+
+        if self.DATA_LIMIT is not None:
+            print('data size limit ON. limit size:', self.DATA_LIMIT)
+            source_sequences_train = source_sequences_train[:self.DATA_LIMIT]
+            target_sequences_train = target_sequences_train[:self.DATA_LIMIT]
+
+        print('source_sequences_train', len(source_sequences_train))
+        print('source_sequences_val', len(source_sequences_val))
+        print('target_sequences_train', len(target_sequences_train))
+        print('target_sequences_val', len(target_sequences_val))
+
+        print('train set size: ', len(source_sequences_train))
+        print('validation set size: ', len(source_sequences_val))
+        TRAIN_SET_SIZE = len(source_sequences_train)
+        VALIDATION_SET_SIZE = len(source_sequences_val)
+        SEQUENCE_MAX_LENGTH = len(source_sequences_train[0])
+
+        train_dataset = self.create_dataset(
+            source_sequences_train,
+            target_sequences_train
+        )
+
+        val_dataset = self.create_dataset(
+            source_sequences_val,
+            target_sequences_val
+        )
+
+        return train_dataset, val_dataset
 
     def download_dataset(self):
         for file in (self.CONFIG[self.DATASET]['train_files']
@@ -81,47 +154,7 @@ class DataLoader:
             with TqdmCustom(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=url) as t:
                 urlretrieve(url, path, t.update_to)
 
-    def load_vocab(self):
-        word2idxs = {
-            self.CONFIG[self.DATASET]['source_lang']: {},
-            self.CONFIG[self.DATASET]['target_lang']: {}
-        }
-
-        idx2words = {
-            self.CONFIG[self.DATASET]['source_lang']: {},
-            self.CONFIG[self.DATASET]['target_lang']: {}
-        }
-
-        for vocab_file in self.CONFIG[self.DATASET]['vocab_files']:
-            word2idx = {}
-            idx2word = {}
-
-            lang = vocab_file[-2:]
-            path = os.path.join(self.DIR, vocab_file)
-
-            with open(path, 'r', encoding='utf-8') as f:
-                lines = f.read().strip().split('\n')
-
-            if lines is None:
-                raise ValueError('Vocab file is invalid')
-
-            # set padding to index 0
-            word2idx['<pad>'] = 0
-            idx2word[0] = '<pad>'
-
-            for index, word in enumerate(lines, start=1):
-                word2idx[word] = index
-                idx2word[index] = word
-
-            word2idxs[lang] = word2idx
-            idx2words[lang] = idx2word
-
-        return (word2idxs[self.CONFIG[self.DATASET]['source_lang']],
-                idx2words[self.CONFIG[self.DATASET]['source_lang']],
-                word2idxs[self.CONFIG[self.DATASET]['target_lang']],
-                idx2words[self.CONFIG[self.DATASET]['target_lang']])
-
-    def load_data(self, path):
+    def parse_data_and_save(self, path):
         print('load data from {}'.format(path))
         with open(path, encoding='utf-8') as f:
             lines = f.read().strip().split('\n')
@@ -129,21 +162,121 @@ class DataLoader:
         if lines is None:
             raise ValueError('Vocab file is invalid')
 
-        return ["<s> {} </s>".format(line) for line in tqdm(lines)]
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
 
-    def tokenize(self, data, word2idx, idx2word):
-        tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', oov_token='<unk>')
-        tokenizer.word_index = word2idx
-        tokenizer.index_word = idx2word
-        sequences = tokenizer.texts_to_sequences(data)
+        return lines
 
-        max_length = max(len(sequence) for sequence in tqdm(sequences))
+    def train_bpe(self, data_path, model_prefix):
+        model_path = model_prefix + self.BPE_MODEL_SUFFIX
+        vocab_path = model_prefix + self.BPE_VOCAB_SUFFIX
 
-        sequences = tf.keras.preprocessing.sequence.pad_sequences( # len(sequences), max_length
-            sequences=sequences, maxlen=max_length, padding='post'
+        if not (os.path.exists(model_path) and os.path.exists(vocab_path)):
+            print('bpe model does not exist. train bpe. model path:', model_path, ' vocab path:', vocab_path)
+            train_source_params = "--input={} \
+                --pad_id=0 \
+                --unk_id=1 \
+                --bos_id=2 \
+                --eos_id=3 \
+                --model_prefix={} \
+                --vocab_size={} \
+                --model_type=bpe ".format(
+                data_path,
+                model_prefix,
+                self.BPE_VOCAB_SIZE
+            )
+            sentencepiece.SentencePieceTrainer.Train(train_source_params)
+        else:
+            print('bpe model exist. load bpe. model path:', model_path, ' vocab path:', vocab_path)
+
+    def sentence_piece(self, source_data, source_bpe_model_path, result_data_path):
+        sp = sentencepiece.SentencePieceProcessor()
+        sp.load(source_bpe_model_path)
+
+        if os.path.exists(result_data_path):
+            print('encoded data exist. load data. path:', result_data_path)
+            with open(result_data_path, 'r', encoding='utf-8') as f:
+                sequences = f.read().strip().split('\n')
+                return sequences
+
+        print('encoded data does not exist. encode data. path:', result_data_path)
+        sequences = []
+        with open(result_data_path, 'w') as f:
+            for sentence in tqdm(source_data):
+                pieces = sp.EncodeAsPieces(sentence)
+                sequence = " ".join(pieces)
+                sequences.append(sequence)
+                f.write(sequence + "\n")
+        return sequences
+
+    def load_bpe_vocab(self, bpe_vocab_path):
+        vocab = [line.split()[0] for line in open(bpe_vocab_path, 'r').read().splitlines()]
+        token2idx = {}
+        idx2token = {}
+
+        for idx, token in enumerate(vocab):
+            token2idx[token] = idx
+            idx2token[idx] = token
+        return token2idx, idx2token
+
+    def texts_to_sequences(self, texts, mode='source'):
+        if mode != 'source' and mode != 'target':
+            ValueError('not allowed mode.')
+
+        sequences = []
+        for text in texts:
+            text_list = ["<s>"] + text.split() + ["</s>"]
+
+            sequence = [
+                self.dictionary[mode]['token2idx'].get(
+                    token, self.dictionary[mode]['token2idx']["<unk>"]
+                )
+                for token in text_list
+            ]
+            sequences.append(sequence)
+        return sequences
+
+    def sequences_to_texts(self, sequences, mode='source'):
+        if mode != 'source' and mode != 'target':
+            ValueError('not allowed mode.')
+
+        texts = []
+        for sequence in sequences:
+            text = [
+                self.dictionary[mode]['idx2token'].get(
+                    idx,
+                    self.dictionary[mode]['idx2token'][1]
+                )
+                for idx in sequence
+            ]
+            texts.append(text)
+        return texts
+
+    def create_dataset(self, source_sequences, target_sequences):
+        new_source_sequences = []
+        new_target_sequences = []
+        for source, target in zip(source_sequences, target_sequences):
+            if len(source) > self.SEQ_MAX_LEN['source']:
+                continue
+            if len(target) > self.SEQ_MAX_LEN['target']:
+                continue
+            new_source_sequences.append(source)
+            new_target_sequences.append(target)
+
+        source_sequences = tf.keras.preprocessing.sequence.pad_sequences(
+            sequences=new_source_sequences, maxlen=self.SEQ_MAX_LEN['source'], padding='post'
         )
-        return sequences, tokenizer
-    # TODO train, validation split function
+        target_sequences = tf.keras.preprocessing.sequence.pad_sequences(
+            sequences=new_target_sequences, maxlen=self.SEQ_MAX_LEN['target'], padding='post'
+        )
+        buffer_size = int(source_sequences.shape[0] * 0.3)
+        dataset = tf.data.Dataset.from_tensor_slices(
+            (source_sequences, target_sequences)
+        ).shuffle(buffer_size)
+        dataset = dataset.batch(self.BATCH_SIZE)
+        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+        return dataset
 
 
 class TqdmCustom(tqdm):
