@@ -1,5 +1,7 @@
 import os
 import tensorflow as tf
+import time
+import datetime
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -41,14 +43,35 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
 
 
+def label_smoothing(target_data, depth, epsilon=0.1):
+    target_data_one_hot = tf.one_hot(target_data, depth=depth)
+    n = target_data_one_hot.get_shape().as_list()[-1]
+    return ((1 - epsilon) * target_data_one_hot) + (epsilon / n)
+
+
 class Trainer:
-    def __init__(self, model, loss_object=None, optimizer=None, checkpoint_dir='./checkpoints', batch_size=None, distribute_strategy=None):
+    def __init__(
+            self,
+            model,
+            dataset,
+            loss_object=None,
+            optimizer=None,
+            checkpoint_dir='./checkpoints',
+            batch_size=None,
+            distribute_strategy=None,
+            vocab_size=32000,
+            epoch=20,
+    ):
         self.batch_size = batch_size
         self.distribute_strategy = distribute_strategy
         self.model = model
         self.loss_object = loss_object
         self.optimizer = optimizer
         self.checkpoint_dir = checkpoint_dir
+        self.vocab_size = vocab_size
+        self.epoch = epoch
+        self.dataset = dataset
+
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         #         self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer, model=self.model)
         if self.optimizer is None:
@@ -63,13 +86,66 @@ class Trainer:
         self.validation_loss = tf.keras.metrics.Mean('validation_loss', dtype=tf.float32)
         self.validation_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('validation_accuracy')
 
-    @tf.function
-    def distributed_train_step(self, input, target):
-        loss = self.distribute_strategy.experimental_run_v2(self.train_step, args=(input, target))
-        loss_value = self.distribute_strategy.reduce(tf.distribute.ReduceOp.MEAN, loss, axis=None)
-        return tf.reduce_mean(loss_value)
+    def multi_gpu_train(self, reset_checkpoint=False):
+        with self.distribute_strategy.scope():
+            self.dataset = self.distribute_strategy.experimental_distribute_dataset(self.dataset)
+            self.trainer(reset_checkpoint=reset_checkpoint, is_distributed=True)
 
-    def train_step(self, input, target):
+    def single_gpu_train(self, reset_checkpoint=False):
+        self.trainer(reset_checkpoint=reset_checkpoint, is_distributed=False)
+
+    def trainer(self, reset_checkpoint, is_distributed=False):
+        current_day = datetime.datetime.now().strftime("%Y%m%d")
+        train_log_dir = './logs/gradient_tape/' + current_day + '/train'
+        os.makedirs(train_log_dir, exist_ok=True)
+        train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+
+        if not reset_checkpoint:
+            if self.checkpoint_manager.latest_checkpoint:
+                print("Restored from {}".format(self.checkpoint_manager.latest_checkpoint))
+            else:
+                print("Initializing from scratch.")
+
+            self.checkpoint.restore(
+                self.checkpoint_manager.latest_checkpoint
+            )
+        else:
+            print("reset and initializing from scratch.")
+
+        for epoch in range(self.epoch):
+            start = time.time()
+            print('start learning')
+
+            for (batch, (input, target)) in enumerate(self.dataset):
+                if is_distributed:
+                    loss = self.distributed_train_step(input, target)
+                else:
+                    loss = self.train_step(input, target)
+
+                self.checkpoint.step.assign_add(1)
+                if batch % 50 == 0:
+                    print(
+                        "Epoch: {}, Batch: {}, Loss:{}, Accuracy: {}".format(epoch, batch, self.train_loss.result(),
+                                                                             self.train_accuracy.result()))
+                if batch % 10000 == 0 and batch != 0:
+                    self.checkpoint_manager.save()
+            print("{} | Epoch: {} Loss:{}, Accuracy: {}, time: {} sec".format(
+                datetime.datetime.now(), epoch, self.train_loss.result(), self.train_accuracy.result(),
+                time.time() - start
+            ))
+            with train_summary_writer.as_default():
+                tf.summary.scalar('train_loss', self.train_loss.result(), step=epoch)
+                tf.summary.scalar('train_accuracy', self.train_accuracy.result(), step=epoch)
+
+            self.checkpoint_manager.save()
+
+            self.train_loss.reset_states()
+            self.train_accuracy.reset_states()
+            self.validation_loss.reset_states()
+            self.validation_accuracy.reset_states()
+        self.checkpoint_manager.save()
+
+    def basic_train_step(self, input, target):
         target_include_start = target[:, :-1]
         target_include_end = target[:, 1:]
         encoder_padding_mask, look_ahead_mask, decoder_padding_mask = Mask.create_masks(
@@ -85,10 +161,9 @@ class Trainer:
                 target_padding_mask=decoder_padding_mask,
                 training=True
             )
-            if self.distribute_strategy is None:
-                loss = self.loss_function(target_include_end, pred)
-            else:
-                loss = self.distributed_loss_function(target_include_end, pred)
+
+            loss = self.loss_function(target_include_end, pred)
+
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
@@ -101,21 +176,23 @@ class Trainer:
 
     def loss_function(self, real, pred):
         mask = tf.math.logical_not(tf.math.equal(real, 0))
-        loss = self.loss_object(real, pred)
+        real_one_hot = label_smoothing(real, depth=self.vocab_size)
+        loss = self.loss_object(real_one_hot, pred)
 
         mask = tf.cast(mask, dtype=loss.dtype)
 
         loss *= mask
         return tf.reduce_mean(loss)
 
-    def distributed_loss_function(self, real, pred):
-        mask = tf.math.logical_not(tf.math.equal(real, 0))
-        loss = self.loss_object(real, pred)
+    @tf.function
+    def train_step(self, input, target):
+        return self.basic_train_step(input, target)
 
-        mask = tf.cast(mask, dtype=loss.dtype)
-
-        loss *= mask
-        return tf.reduce_mean(loss)
+    @tf.function
+    def distributed_train_step(self, input, target):
+        loss = self.distribute_strategy.experimental_run_v2(self.basic_train_step, args=(input, target))
+        loss_value = self.distribute_strategy.reduce(tf.distribute.ReduceOp.MEAN, loss, axis=None)
+        return tf.reduce_mean(loss_value)
 
 
 def translate(input, data_loader, trainer, seq_max_len_target=100):
