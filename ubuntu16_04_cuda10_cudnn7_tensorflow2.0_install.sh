@@ -39,5 +39,5 @@ source ./venv/bin/activate
 
 python -V
 pip install --upgrade pip
-pip install tensorflow-gpu==2.0.0-rc0 skleran jupyter tqdm
+pip install -r requirments.txt
 python -c "import tensorflow as tf;print(tf.reduce_sum(tf.random.normal([1000, 1000])))"

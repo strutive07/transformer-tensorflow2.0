@@ -17,8 +17,6 @@ from utils import Mask, CustomSchedule, Trainer, translate
 from data_loader import DataLoader
 import datetime
 from model import *
-from tqdm import tqdm
-from multiprocessing import Pool
 
 # hyper paramaters
 TRAIN_RATIO = 0.9
