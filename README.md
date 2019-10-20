@@ -12,3 +12,4 @@ colab guide: [https://colab.research.google.com/github/strutive07/transformer-te
 | newstest2014 | 22.85      |
 | newstest2015 | 25.33      |
 
+colab guide: https://colab.research.google.com/github/strutive07/transformer-tensorflow2.0/blob/master/transformer_implement_tf2_0.ipynb

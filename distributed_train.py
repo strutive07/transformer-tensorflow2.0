@@ -1,11 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# colab mode
-# try:
-#     %tensorflow_version 2.x
-# except Exception:
-#     pass
-# !pip install tensorflow_probability==0.8.0rc0 --upgrade
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -66,58 +60,17 @@ transformer = Transformer(
 
 learning_rate = CustomSchedule(D_MODEL)
 optimizer = tf.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
-loss_object = tf.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
-
-import time
-import datetime
-
-current_day = datetime.datetime.now().strftime("%Y%m%d")
-train_log_dir = './logs/gradient_tape/' + current_day + '/train'
-os.makedirs(train_log_dir, exist_ok=True)
-train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+loss_object = tf.losses.CategoricalCrossentropy(from_logits=True, reduction='none')
 
 trainer = Trainer(
     model=transformer,
+    dataset=dataset,
     loss_object=loss_object,
     optimizer=optimizer,
     batch_size=GLOBAL_BATCH_SIZE,
-    distribute_strategy=strategy
-)
-if trainer.checkpoint_manager.latest_checkpoint:
-    print("Restored from {}".format(trainer.checkpoint_manager.latest_checkpoint))
-else:
-    print("Initializing from scratch.")
-
-trainer.checkpoint.restore(
-    trainer.checkpoint_manager.latest_checkpoint
+    distribute_strategy=strategy,
+    vocab_size=BPE_VOCAB_SIZE,
+    epoch=EPOCHS,
 )
 
-
-with strategy.scope():
-    dataset = strategy.experimental_distribute_dataset(dataset)
-    for epoch in range(EPOCHS):
-        start = time.time()
-        print('start learning')
-
-        for (batch, (input, target)) in enumerate(dataset):
-            loss = trainer.distributed_train_step(input, target)
-            trainer.checkpoint.step.assign_add(1)
-            if batch % 50 == 0:
-                print("Epoch: {}, Batch: {}, Loss:{}, Accuracy: {}".format(epoch, batch, trainer.train_loss.result(),
-                                                                           trainer.train_accuracy.result()))
-            if batch % 10000 == 0 and batch != 0:
-                trainer.checkpoint_manager.save()
-        print("{} | Epoch: {} Loss:{}, Accuracy: {}, time: {} sec".format(
-            datetime.datetime.now(), epoch, trainer.train_loss.result(), trainer.train_accuracy.result(), time.time() - start
-        ))
-        with train_summary_writer.as_default():
-            tf.summary.scalar('train_loss', trainer.train_loss.result(), step=epoch)
-            tf.summary.scalar('train_accuracy', trainer.train_accuracy.result(), step=epoch)
-
-        trainer.checkpoint_manager.save()
-
-        trainer.train_loss.reset_states()
-        trainer.train_accuracy.reset_states()
-        trainer.validation_loss.reset_states()
-        trainer.validation_accuracy.reset_states()
-    trainer.checkpoint_manager.save()
+trainer.multi_gpu_train()
