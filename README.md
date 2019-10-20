@@ -5,3 +5,4 @@ paper review(pdf) : https://github.com/strutive07/transformer-tensorflow2.0/blob
 
 paper review: https://github.com/strutive07/TIL/blob/master/paper_review/Attention%20is%20all%20you%20need.md
 
+colab guide: https://colab.research.google.com/github/strutive07/transformer-tensorflow2.0/blob/master/transformer_implement_tf2_0.ipynb
