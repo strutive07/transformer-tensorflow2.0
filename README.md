@@ -1,5 +1,3 @@
-# README
-
 # Transformer-tensorflow2.0
 
 [attention is all you need](https://arxiv.org/pdf/1706.03762.pdf) (transformer) in tensorflow 2.0
