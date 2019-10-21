@@ -4,9 +4,9 @@
 
 [paper review(pdf)](https://github.com/strutive07/transformer-tensorflow2.0/blob/master/Attention%20is%20all%20you%20need.pdf)
 
-colab guide: [https://colab.research.google.com/github/strutive07/transformer-tensorflow2.0/blob/master/transformer_implement_tf2_0.ipynb](https://colab.research.google.com/github/strutive07/transformer-tensorflow2.0/blob/master/transformer_implement_tf2_0.ipynb)
+[colab guide](https://colab.research.google.com/github/strutive07/transformer-tensorflow2.0/blob/master/transformer_implement_tf2_0.ipynb)
 
-
+[Download pre-trained model(checkpoint)](https://drive.google.com/file/d/1jsY7WMI9EU5ifhcxV_sMpK8znPA1mvkf/view?usp=sharing)
 
 ## How to train
 
