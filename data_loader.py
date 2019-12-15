@@ -114,9 +114,15 @@ class DataLoader:
         print('source sequence example:', source_sequences[0])
         print('target sequence example:', target_sequences[0])
 
-        source_sequences_train, source_sequences_val, target_sequences_train, target_sequences_val = train_test_split(
-            source_sequences, target_sequences, train_size=self.TRAIN_RATIO
-        )
+        if self.TRAIN_RATIO == 1.0:
+            source_sequences_train = source_sequences
+            source_sequences_val = []
+            target_sequences_train = target_sequences
+            target_sequences_val = []
+        else:
+            source_sequences_train, source_sequences_val, target_sequences_train, target_sequences_val = train_test_split(
+                source_sequences, target_sequences, train_size=self.TRAIN_RATIO
+            )
 
         if self.DATA_LIMIT is not None:
             print('data size limit ON. limit size:', self.DATA_LIMIT)
@@ -138,11 +144,13 @@ class DataLoader:
             source_sequences_train,
             target_sequences_train
         )
-
-        val_dataset = self.create_dataset(
-            source_sequences_val,
-            target_sequences_val
-        )
+        if self.TRAIN_RATIO == 1.0:
+            val_dataset = None
+        else:
+            val_dataset = self.create_dataset(
+                source_sequences_val,
+                target_sequences_val
+            )
 
         return train_dataset, val_dataset
 
