@@ -234,7 +234,8 @@ def translate(input, data_loader, trainer, seq_max_len_target=100):
         predicted_id = tf.cast(tf.argmax(pred, axis=-1), dtype=tf.int32)
 
         if predicted_id == decoder_end_token:
-            return tf.squeeze(decoder_input, axis=0)
+            break
         decoder_input = tf.concat([decoder_input, predicted_id], axis=-1)
 
-    return tf.squeeze(decoder_input, axis=0)
+    total_output = tf.squeeze(decoder_input, axis=0)
+    return data_loader.sequences_to_texts([total_output.numpy().tolist()], mode='target')

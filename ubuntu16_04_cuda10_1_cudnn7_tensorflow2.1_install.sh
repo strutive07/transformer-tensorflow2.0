@@ -16,9 +16,9 @@ sudo apt-get install --no-install-recommends nvidia-410
 
 # Install development and runtime libraries (~4GB)
 sudo apt-get install --no-install-recommends \
-    cuda-10-0 \
-    libcudnn7=7.4.1.5-1+cuda10.0  \
-    libcudnn7-dev=7.4.1.5-1+cuda10.0
+    cuda-10-1 \
+    libcudnn7\
+    libcudnn7-dev
 
 
 # Install TensorRT. Requires that libcudnn7 is installed above.

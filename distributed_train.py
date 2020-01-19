@@ -11,7 +11,7 @@ import datetime
 from model import *
 
 # hyper paramaters
-TRAIN_RATIO = 0.9
+TRAIN_RATIO = 1.0
 D_POINT_WISE_FF = 2048
 D_MODEL = 512
 ENCODER_COUNT = DECODER_COUNT = 6
