@@ -74,7 +74,6 @@ def do_translate(input):
     target = input[1][1]
     print(index)
     output = translate(source, data_loader, trainer, SEQ_MAX_LEN_TARGET)
-    res = data_loader.sequences_to_texts([output.numpy().tolist()], mode='target')
     return {
         'source': source,
         'target': target,
