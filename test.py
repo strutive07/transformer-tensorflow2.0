@@ -36,6 +36,7 @@ data_loader = DataLoader(
     dataset_name='wmt14/en-de',
     data_dir='./datasets'
 )
+data_loader.load_bpe_encoder()
 
 source_data, target_data = data_loader.load_test(index=3)
 data = zip(source_data, target_data)
@@ -51,7 +52,13 @@ transformer = Transformer(
     dropout_prob=DROPOUT_PROB
 )
 
-trainer = Trainer(model=transformer, checkpoint_dir='./checkpoints')
+trainer = Trainer(
+    model=transformer,
+    dataset=None,
+    loss_object=None,
+    optimizer=None,
+    checkpoint_dir='./checkpoints'
+)
 if trainer.checkpoint_manager.latest_checkpoint:
     print("Restored from {}".format(trainer.checkpoint_manager.latest_checkpoint))
 else:
