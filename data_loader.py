@@ -137,9 +137,6 @@ class DataLoader:
 
         print('train set size: ', len(source_sequences_train))
         print('validation set size: ', len(source_sequences_val))
-        TRAIN_SET_SIZE = len(source_sequences_train)
-        VALIDATION_SET_SIZE = len(source_sequences_val)
-        SEQUENCE_MAX_LENGTH = len(source_sequences_train[0])
 
         train_dataset = self.create_dataset(
             source_sequences_train,
@@ -166,8 +163,7 @@ class DataLoader:
 
         print('#2 parse data')
 
-        source_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index * 2])
-        target_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index * 2 + 1])
+        source_test_data_path, target_test_data_path = self.get_test_data_path(index)
 
         source_data = self.parse_data_and_save(source_test_data_path)
         target_data = self.parse_data_and_save(target_test_data_path)
@@ -180,6 +176,11 @@ class DataLoader:
             self.PATHS['target_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
 
         return source_data, target_data
+
+    def get_test_data_path(self, index):
+        source_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index * 2])
+        target_test_data_path = os.path.join(self.DIR, self.CONFIG[self.DATASET]['test_files'][index * 2 + 1])
+        return source_test_data_path, target_test_data_path
 
     def download_dataset(self):
         for file in (self.CONFIG[self.DATASET]['train_files']
@@ -279,7 +280,9 @@ class DataLoader:
             ValueError('not allowed mode.')
 
     def load_bpe_vocab(self, bpe_vocab_path):
-        vocab = [line.split()[0] for line in open(bpe_vocab_path, 'r').read().splitlines()]
+        with open(bpe_vocab_path, 'r') as f:
+            vocab = [line.split()[0] for line in f.read().splitlines()]
+
         token2idx = {}
         idx2token = {}
 

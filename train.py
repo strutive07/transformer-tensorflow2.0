@@ -1,13 +1,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import datetime
 import os
 
 import tensorflow as tf
 from data_loader import DataLoader
 from model import Transformer
-from utils import CustomSchedule, Mask, Trainer
+from utils import CustomSchedule, Trainer
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
