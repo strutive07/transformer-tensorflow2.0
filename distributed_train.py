@@ -49,7 +49,7 @@ data_loader = DataLoader(
 dataset, val_dataset = data_loader.load()
 
 transformer = Transformer(
-    input_vocab_size=BPE_VOCAB_SIZE,
+    inputs_vocab_size=BPE_VOCAB_SIZE,
     target_vocab_size=BPE_VOCAB_SIZE,
     encoder_count=ENCODER_COUNT,
     decoder_count=DECODER_COUNT,

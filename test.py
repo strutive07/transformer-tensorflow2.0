@@ -34,7 +34,7 @@ _, target_data_path = data_loader.get_test_data_path(index=3)
 data = zip(source_data, target_data)
 
 transformer = Transformer(
-    input_vocab_size=BPE_VOCAB_SIZE,
+    inputs_vocab_size=BPE_VOCAB_SIZE,
     target_vocab_size=BPE_VOCAB_SIZE,
     encoder_count=ENCODER_COUNT,
     decoder_count=DECODER_COUNT,
