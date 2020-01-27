@@ -9,6 +9,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 CURRENT_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 BLEU_CALCULATOR_PATH = os.path.join(CURRENT_DIR_PATH, 'multi-bleu.perl')
 
+
 class Mask:
     @classmethod
     def create_padding_mask(cls, sequences):
@@ -244,6 +245,7 @@ def translate(input, data_loader, trainer, seq_max_len_target=100):
 
     total_output = tf.squeeze(decoder_input, axis=0)
     return data_loader.sequences_to_texts([total_output.numpy().tolist()], mode='target')
+
 
 def calculate_bleu_score(target_path, ref_path):
 
