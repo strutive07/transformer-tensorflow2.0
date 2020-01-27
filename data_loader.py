@@ -266,7 +266,6 @@ class DataLoader:
             pieces = self.source_sp.EncodeAsPieces(input)
             sequence = " ".join(pieces)
 
-            return sequence
         elif mode == 'target':
             if self.target_sp is None:
                 self.target_sp = sentencepiece.SentencePieceProcessor()
@@ -275,9 +274,10 @@ class DataLoader:
             pieces = self.target_sp.EncodeAsPieces(input)
             sequence = " ".join(pieces)
 
-            return sequence
         else:
             ValueError('not allowed mode.')
+
+        return sequence
 
     def load_bpe_vocab(self, bpe_vocab_path):
         with open(bpe_vocab_path, 'r') as f:
