@@ -173,10 +173,11 @@ class Trainer:
 
         self.train_loss(loss)
         self.train_accuracy(target_include_end, pred)
+
         if self.distribute_strategy is None:
             return tf.reduce_mean(loss)
-        else:
-            return loss
+        
+        return loss
 
     def loss_function(self, real, pred):
         mask = tf.math.logical_not(tf.math.equal(real, 0))
