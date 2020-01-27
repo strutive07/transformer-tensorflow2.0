@@ -1,6 +1,6 @@
 import datetime
-import re
 import os
+import re
 import time
 
 import tensorflow as tf
@@ -248,7 +248,8 @@ def calculate_bleu_score(target_path, ref_path):
 
     get_bleu_score = f"perl {BLEU_CALCULATOR_PATH} {ref_path} < {target_path} > temp"
     os.system(get_bleu_score)
-    bleu_score_report = open("temp", "r").read()
+    with open("temp", "r") as f:
+        bleu_score_report = f.read()
     score = re.findall("BLEU = ([^,]+)", bleu_score_report)[0]
 
     return score, bleu_score_report

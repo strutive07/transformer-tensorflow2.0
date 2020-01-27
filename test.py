@@ -5,7 +5,7 @@ import os
 
 from data_loader import DataLoader
 from model import Transformer
-from utils import Trainer, translate, calculate_bleu_score
+from utils import Trainer, calculate_bleu_score, translate
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
