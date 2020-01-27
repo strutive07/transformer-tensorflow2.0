@@ -229,7 +229,7 @@ class DataLoader:
             sentencepiece.SentencePieceTrainer.Train(train_source_params)
         else:
             print('bpe model exist. load bpe. model path:', model_path, ' vocab path:', vocab_path)
-            
+
     def load_bpe_encoder(self):
         self.dictionary['source']['token2idx'], self.dictionary['source']['idx2token'] = self.load_bpe_vocab(self.PATHS['source_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
         self.dictionary['target']['token2idx'], self.dictionary['target']['idx2token'] = self.load_bpe_vocab(self.PATHS['target_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)

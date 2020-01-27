@@ -15,21 +15,21 @@ class Mask:
     def create_padding_mask(cls, sequences):
         sequences = tf.cast(tf.math.equal(sequences, 0), dtype=tf.float32)
         return sequences[:, tf.newaxis, tf.newaxis, :]
-    
+
     @classmethod
     def create_look_ahead_mask(cls, seq_len):
         return 1 - tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
-    
+
     @classmethod
     def create_masks(cls, inputs, target):
         encoder_padding_mask = Mask.create_padding_mask(inputs)
         decoder_padding_mask = Mask.create_padding_mask(inputs)
-        
+
         look_ahead_mask = tf.maximum(
             Mask.create_look_ahead_mask(tf.shape(target)[1]),
             Mask.create_padding_mask(target)
             )
-        
+
         return encoder_padding_mask, look_ahead_mask, decoder_padding_mask
 
 
@@ -176,7 +176,7 @@ class Trainer:
 
         if self.distribute_strategy is None:
             return tf.reduce_mean(loss)
-        
+
         return loss
 
     def loss_function(self, real, pred):
