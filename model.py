@@ -26,9 +26,9 @@ class Transformer(tf.keras.Model):
         self.d_point_wise_ff = d_point_wise_ff,
         self.dropout_prob = dropout_prob
 
-        self.encoder_embedding_layer = Embedding_layer(input_vocab_size, d_model)
+        self.encoder_embedding_layer = Embeddinglayer(input_vocab_size, d_model)
         self.encoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
-        self.decoder_embedding_layer = Embedding_layer(target_vocab_size, d_model)
+        self.decoder_embedding_layer = Embeddinglayer(target_vocab_size, d_model)
         self.decoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
 
         self.encoder_layers = [
@@ -252,10 +252,10 @@ class ScaledDotProductAttention(tf.keras.layers.Layer):
         return tf.matmul(attention_weight, value), attention_weight
 
 
-class Embedding_layer(tf.keras.layers.Layer):
+class Embeddinglayer(tf.keras.layers.Layer):
     def __init__(self, vocab_size, d_model):
         # model hyper parameter variables
-        super(Embedding_layer, self).__init__()
+        super(Embeddinglayer, self).__init__()
         self.vocab_size = vocab_size
         self.d_model = d_model
 
