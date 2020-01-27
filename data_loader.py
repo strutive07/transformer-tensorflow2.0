@@ -11,6 +11,7 @@ class DataLoader:
     DIR = None
     PATHS = {}
     BPE_VOCAB_SIZE = 0
+    MODES = ['source', 'target']
     dictionary = {
         'source': {
             'token2idx': None,
@@ -254,7 +255,7 @@ class DataLoader:
         return sequences
 
     def encode_data(self, input, mode='source'):
-        if mode != 'source' and mode != 'target':
+        if mode not in self.MODES:
             ValueError('not allowed mode.')
 
         if mode == 'source':
@@ -291,7 +292,7 @@ class DataLoader:
         return token2idx, idx2token
 
     def texts_to_sequences(self, texts, mode='source'):
-        if mode != 'source' and mode != 'target':
+        if mode not in self.MODES:
             ValueError('not allowed mode.')
 
         sequences = []
@@ -308,7 +309,7 @@ class DataLoader:
         return sequences
 
     def sequences_to_texts(self, sequences, mode='source'):
-        if mode != 'source' and mode != 'target':
+        if mode not in self.MODES:
             ValueError('not allowed mode.')
 
         texts = []
