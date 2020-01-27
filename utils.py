@@ -1,8 +1,13 @@
-import os
-import tensorflow as tf
-import time
 import datetime
+import os
+import re
+import time
+
+import tensorflow as tf
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+CURRENT_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+BLEU_CALCULATOR_PATH = os.path.join(CURRENT_DIR_PATH, 'multi-bleu.perl')
 
 
 class Mask:
@@ -10,21 +15,21 @@ class Mask:
     def create_padding_mask(cls, sequences):
         sequences = tf.cast(tf.math.equal(sequences, 0), dtype=tf.float32)
         return sequences[:, tf.newaxis, tf.newaxis, :]
-    
+
     @classmethod
     def create_look_ahead_mask(cls, seq_len):
         return 1 - tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
-    
+
     @classmethod
-    def create_masks(cls, input, target):
-        encoder_padding_mask = Mask.create_padding_mask(input)
-        decoder_padding_mask = Mask.create_padding_mask(input)
-        
+    def create_masks(cls, inputs, target):
+        encoder_padding_mask = Mask.create_padding_mask(inputs)
+        decoder_padding_mask = Mask.create_padding_mask(inputs)
+
         look_ahead_mask = tf.maximum(
             Mask.create_look_ahead_mask(tf.shape(target)[1]),
             Mask.create_padding_mask(target)
             )
-        
+
         return encoder_padding_mask, look_ahead_mask, decoder_padding_mask
 
 
@@ -73,7 +78,6 @@ class Trainer:
         self.dataset = dataset
 
         os.makedirs(self.checkpoint_dir, exist_ok=True)
-        #         self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer, model=self.model)
         if self.optimizer is None:
             self.checkpoint = tf.train.Checkpoint(step=tf.Variable(1), model=self.model)
         else:
@@ -116,11 +120,11 @@ class Trainer:
             start = time.time()
             print('start learning')
 
-            for (batch, (input, target)) in enumerate(self.dataset):
+            for (batch, (inputs, target)) in enumerate(self.dataset):
                 if is_distributed:
-                    loss = self.distributed_train_step(input, target)
+                    self.distributed_train_step(inputs, target)
                 else:
-                    loss = self.train_step(input, target)
+                    self.train_step(inputs, target)
 
                 self.checkpoint.step.assign_add(1)
                 if batch % 50 == 0:
@@ -145,18 +149,18 @@ class Trainer:
             self.validation_accuracy.reset_states()
         self.checkpoint_manager.save()
 
-    def basic_train_step(self, input, target):
+    def basic_train_step(self, inputs, target):
         target_include_start = target[:, :-1]
         target_include_end = target[:, 1:]
         encoder_padding_mask, look_ahead_mask, decoder_padding_mask = Mask.create_masks(
-            input, target_include_start
+            inputs, target_include_start
         )
 
         with tf.GradientTape() as tape:
             pred = self.model.call(
-                input=input,
+                inputs=inputs,
                 target=target_include_start,
-                input_padding_mask=encoder_padding_mask,
+                inputs_padding_mask=encoder_padding_mask,
                 look_ahead_mask=look_ahead_mask,
                 target_padding_mask=decoder_padding_mask,
                 training=True
@@ -169,10 +173,11 @@ class Trainer:
 
         self.train_loss(loss)
         self.train_accuracy(target_include_end, pred)
+
         if self.distribute_strategy is None:
             return tf.reduce_mean(loss)
-        else:
-            return loss
+
+        return loss
 
     def loss_function(self, real, pred):
         mask = tf.math.logical_not(tf.math.equal(real, 0))
@@ -185,17 +190,17 @@ class Trainer:
         return tf.reduce_mean(loss)
 
     @tf.function
-    def train_step(self, input, target):
-        return self.basic_train_step(input, target)
+    def train_step(self, inputs, target):
+        return self.basic_train_step(inputs, target)
 
     @tf.function
-    def distributed_train_step(self, input, target):
-        loss = self.distribute_strategy.experimental_run_v2(self.basic_train_step, args=(input, target))
+    def distributed_train_step(self, inputs, target):
+        loss = self.distribute_strategy.experimental_run_v2(self.basic_train_step, args=(inputs, target))
         loss_value = self.distribute_strategy.reduce(tf.distribute.ReduceOp.MEAN, loss, axis=None)
         return tf.reduce_mean(loss_value)
 
 
-def translate(input, data_loader, trainer, seq_max_len_target=100):
+def translate(inputs, data_loader, trainer, seq_max_len_target=100):
     if data_loader is None:
         ValueError('data loader is None')
 
@@ -208,24 +213,24 @@ def translate(input, data_loader, trainer, seq_max_len_target=100):
     if not isinstance(seq_max_len_target, int):
         ValueError('seq_max_len_target is not int')
 
-    encoded_data = data_loader.encode_data(input, mode='source')
+    encoded_data = data_loader.encode_data(inputs, mode='source')
     encoded_data = data_loader.texts_to_sequences([encoded_data])
-    encoder_input = tf.convert_to_tensor(
+    encoder_inputs = tf.convert_to_tensor(
         encoded_data,
         dtype=tf.int32
     )
-    decoder_input = [data_loader.dictionary['target']['token2idx']['<s>']]
-    decoder_input = tf.expand_dims(decoder_input, 0)
+    decoder_inputs = [data_loader.dictionary['target']['token2idx']['<s>']]
+    decoder_inputs = tf.expand_dims(decoder_inputs, 0)
     decoder_end_token = data_loader.dictionary['target']['token2idx']['</s>']
 
-    for i in range(seq_max_len_target):
+    for _ in range(seq_max_len_target):
         encoder_padding_mask, look_ahead_mask, decoder_padding_mask = Mask.create_masks(
-            encoder_input, decoder_input
+            encoder_inputs, decoder_inputs
         )
         pred = trainer.model.call(
-            input=encoder_input,
-            target=decoder_input,
-            input_padding_mask=encoder_padding_mask,
+            inputs=encoder_inputs,
+            target=decoder_inputs,
+            inputs_padding_mask=encoder_padding_mask,
             look_ahead_mask=look_ahead_mask,
             target_padding_mask=decoder_padding_mask,
             training=False
@@ -235,7 +240,18 @@ def translate(input, data_loader, trainer, seq_max_len_target=100):
 
         if predicted_id == decoder_end_token:
             break
-        decoder_input = tf.concat([decoder_input, predicted_id], axis=-1)
+        decoder_inputs = tf.concat([decoder_inputs, predicted_id], axis=-1)
 
-    total_output = tf.squeeze(decoder_input, axis=0)
+    total_output = tf.squeeze(decoder_inputs, axis=0)
     return data_loader.sequences_to_texts([total_output.numpy().tolist()], mode='target')
+
+
+def calculate_bleu_score(target_path, ref_path):
+
+    get_bleu_score = f"perl {BLEU_CALCULATOR_PATH} {ref_path} < {target_path} > temp"
+    os.system(get_bleu_score)
+    with open("temp", "r") as f:
+        bleu_score_report = f.read()
+    score = re.findall("BLEU = ([^,]+)", bleu_score_report)[0]
+
+    return score, bleu_score_report

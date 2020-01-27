@@ -1,14 +1,15 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import os
+
+import tensorflow as tf
+from data_loader import DataLoader
+from model import Transformer
+from utils import CustomSchedule, Trainer
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-import numpy as np
-import tensorflow as tf
-from utils import Mask, CustomSchedule, Trainer
-from data_loader import DataLoader
-import datetime
-from model import *
 
 # hyper paramaters
 TRAIN_RATIO = 0.9
@@ -45,7 +46,7 @@ data_loader = DataLoader(
 dataset, val_dataset = data_loader.load()
 
 transformer = Transformer(
-    input_vocab_size=BPE_VOCAB_SIZE,
+    inputs_vocab_size=BPE_VOCAB_SIZE,
     target_vocab_size=BPE_VOCAB_SIZE,
     encoder_count=ENCODER_COUNT,
     decoder_count=DECODER_COUNT,

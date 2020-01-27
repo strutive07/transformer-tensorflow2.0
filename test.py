@@ -1,22 +1,13 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-import time
-import datetime
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-# colab mode
-# try:
-#     %tensorflow_version 2.x
-# except Exception:
-#     pass
-# !pip install tensorflow_probability==0.8.0rc0 --upgrade
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-import numpy as np
-import tensorflow as tf
-from utils import Mask, CustomSchedule, Trainer, translate
 from data_loader import DataLoader
-import datetime
-from model import *
+from model import Transformer
+from utils import Trainer, calculate_bleu_score, translate
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # hyper paramaters
 TRAIN_RATIO = 0.9
@@ -31,7 +22,6 @@ SEQ_MAX_LEN_SOURCE = 100
 SEQ_MAX_LEN_TARGET = 100
 BPE_VOCAB_SIZE = 32000
 
-
 data_loader = DataLoader(
     dataset_name='wmt14/en-de',
     data_dir='./datasets'
@@ -39,10 +29,12 @@ data_loader = DataLoader(
 data_loader.load_bpe_encoder()
 
 source_data, target_data = data_loader.load_test(index=3)
+_, target_data_path = data_loader.get_test_data_path(index=3)
+
 data = zip(source_data, target_data)
 
 transformer = Transformer(
-    input_vocab_size=BPE_VOCAB_SIZE,
+    inputs_vocab_size=BPE_VOCAB_SIZE,
     target_vocab_size=BPE_VOCAB_SIZE,
     encoder_count=ENCODER_COUNT,
     decoder_count=DECODER_COUNT,
@@ -68,24 +60,27 @@ trainer.checkpoint.restore(
     trainer.checkpoint_manager.latest_checkpoint
 )
 
-def do_translate(input):
-    index = input[0]
-    source = input[1][0]
-    target = input[1][1]
+
+def do_translate(input_data):
+    index = input_data[0]
+    source = input_data[1][0]
+    target = input_data[1][1]
     print(index)
     output = translate(source, data_loader, trainer, SEQ_MAX_LEN_TARGET)
     return {
         'source': source,
         'target': target,
-        'output': res
+        'output': output
     }
+
 
 translated_data = []
 
-for input in data:
-    res = do_translate(input)
-    translated_data.append(res)
+for test_data in data:
+    res = do_translate(test_data)
+    translated_data.append(res['output'])
 
-import pickle
-with open('translated_data.pickle', 'wb') as f:
-    pickle.dump(translated_data, f)
+with open('translated_data', 'w') as f:
+    f.write(str('\n'.join(translated_data)))
+
+score, report = calculate_bleu_score(target_path='translated_data', ref_path=target_data_path)
