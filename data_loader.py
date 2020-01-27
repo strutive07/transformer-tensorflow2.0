@@ -1,5 +1,4 @@
 import os
-import pickle
 from urllib.request import urlretrieve
 
 import sentencepiece
