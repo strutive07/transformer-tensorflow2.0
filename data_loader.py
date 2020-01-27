@@ -214,7 +214,7 @@ class DataLoader:
 
         if not (os.path.exists(model_path) and os.path.exists(vocab_path)):
             print('bpe model does not exist. train bpe. model path:', model_path, ' vocab path:', vocab_path)
-            train_source_params = "--input={} \
+            train_source_params = "--inputs={} \
                 --pad_id=0 \
                 --unk_id=1 \
                 --bos_id=2 \
@@ -254,7 +254,7 @@ class DataLoader:
                 f.write(sequence + "\n")
         return sequences
 
-    def encode_data(self, input, mode='source'):
+    def encode_data(self, inputs, mode='source'):
         if mode not in self.MODES:
             ValueError('not allowed mode.')
 
@@ -263,7 +263,7 @@ class DataLoader:
                 self.source_sp = sentencepiece.SentencePieceProcessor()
                 self.source_sp.load(self.PATHS['source_bpe_prefix'] + self.BPE_MODEL_SUFFIX)
 
-            pieces = self.source_sp.EncodeAsPieces(input)
+            pieces = self.source_sp.EncodeAsPieces(inputs)
             sequence = " ".join(pieces)
 
         elif mode == 'target':
@@ -271,7 +271,7 @@ class DataLoader:
                 self.target_sp = sentencepiece.SentencePieceProcessor()
                 self.target_sp.load(self.PATHS['target_bpe_prefix'] + self.BPE_MODEL_SUFFIX)
 
-            pieces = self.target_sp.EncodeAsPieces(input)
+            pieces = self.target_sp.EncodeAsPieces(inputs)
             sequence = " ".join(pieces)
 
         else:
