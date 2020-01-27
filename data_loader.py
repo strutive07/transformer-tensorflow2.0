@@ -121,7 +121,10 @@ class DataLoader:
             target_sequences_train = target_sequences
             target_sequences_val = []
         else:
-            source_sequences_train, source_sequences_val, target_sequences_train, target_sequences_val = train_test_split(
+            (source_sequences_train,
+             source_sequences_val,
+             target_sequences_train,
+             target_sequences_val) = train_test_split(
                 source_sequences, target_sequences, train_size=self.TRAIN_RATIO
             )
 
@@ -154,7 +157,9 @@ class DataLoader:
 
     def load_test(self, index=0, custom_dataset=False):
         if index < 0 or index >= len(self.CONFIG[self.DATASET]['test_files']) // 2:
-            raise ValueError('test file index out of range. min: 0, max: {}'.format(len(self.CONFIG[self.DATASET]['test_files']) // 2 - 1))
+            raise ValueError('test file index out of range. min: 0, max: {}'.format(
+                len(self.CONFIG[self.DATASET]['test_files']) // 2 - 1)
+            )
         if custom_dataset:
             print('#1 download data')
             self.download_dataset()
@@ -231,8 +236,12 @@ class DataLoader:
             print('bpe model exist. load bpe. model path:', model_path, ' vocab path:', vocab_path)
 
     def load_bpe_encoder(self):
-        self.dictionary['source']['token2idx'], self.dictionary['source']['idx2token'] = self.load_bpe_vocab(self.PATHS['source_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
-        self.dictionary['target']['token2idx'], self.dictionary['target']['idx2token'] = self.load_bpe_vocab(self.PATHS['target_bpe_prefix'] + self.BPE_VOCAB_SUFFIX)
+        self.dictionary['source']['token2idx'], self.dictionary['source']['idx2token'] = self.load_bpe_vocab(
+            self.PATHS['source_bpe_prefix'] + self.BPE_VOCAB_SUFFIX
+        )
+        self.dictionary['target']['token2idx'], self.dictionary['target']['idx2token'] = self.load_bpe_vocab(
+            self.PATHS['target_bpe_prefix'] + self.BPE_VOCAB_SUFFIX
+        )
 
     def sentence_piece(self, source_data, source_bpe_model_path, result_data_path):
         sp = sentencepiece.SentencePieceProcessor()
