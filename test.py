@@ -1,25 +1,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import datetime
-# colab mode
-# try:
-#     %tensorflow_version 2.x
-# except Exception:
-#     pass
-# !pip install tensorflow_probability==0.8.0rc0 --upgrade
 import os
-import pickle
-import time
 
-import numpy as np
-import tensorflow as tf
 from data_loader import DataLoader
 from model import Transformer
-from utils import CustomSchedule, Mask, Trainer, translate
+from utils import Trainer, translate, calculate_bleu_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 
 # hyper paramaters
 TRAIN_RATIO = 0.9
@@ -34,7 +22,6 @@ SEQ_MAX_LEN_SOURCE = 100
 SEQ_MAX_LEN_TARGET = 100
 BPE_VOCAB_SIZE = 32000
 
-
 data_loader = DataLoader(
     dataset_name='wmt14/en-de',
     data_dir='./datasets'
@@ -42,6 +29,8 @@ data_loader = DataLoader(
 data_loader.load_bpe_encoder()
 
 source_data, target_data = data_loader.load_test(index=3)
+_, target_data_path = data_loader.get_test_data_path(index=3)
+
 data = zip(source_data, target_data)
 
 transformer = Transformer(
@@ -71,6 +60,7 @@ trainer.checkpoint.restore(
     trainer.checkpoint_manager.latest_checkpoint
 )
 
+
 def do_translate(input):
     index = input[0]
     source = input[1][0]
@@ -80,14 +70,17 @@ def do_translate(input):
     return {
         'source': source,
         'target': target,
-        'output': res
+        'output': output
     }
+
 
 translated_data = []
 
 for input in data:
     res = do_translate(input)
-    translated_data.append(res)
+    translated_data.append(res['output'])
 
-with open('translated_data.pickle', 'wb') as f:
-    pickle.dump(translated_data, f)
+with open('translated_data', 'w') as f:
+    f.write('\n'.join(translated_data))
+
+score, report = calculate_bleu_score(target_path='translated_data', ref_path=target_data_path)

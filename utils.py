@@ -1,11 +1,13 @@
 import datetime
+import re
 import os
 import time
 
 import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
+CURRENT_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+BLEU_CALCULATOR_PATH = os.path.join(CURRENT_DIR_PATH, 'multi-bleu.perl')
 
 class Mask:
     @classmethod
@@ -241,3 +243,12 @@ def translate(input, data_loader, trainer, seq_max_len_target=100):
 
     total_output = tf.squeeze(decoder_input, axis=0)
     return data_loader.sequences_to_texts([total_output.numpy().tolist()], mode='target')
+
+def calculate_bleu_score(target_path, ref_path):
+
+    get_bleu_score = f"perl {BLEU_CALCULATOR_PATH} {ref_path} < {target_path} > temp"
+    os.system(get_bleu_score)
+    bleu_score_report = open("temp", "r").read()
+    score = re.findall("BLEU = ([^,]+)", bleu_score_report)[0]
+
+    return score, bleu_score_report
