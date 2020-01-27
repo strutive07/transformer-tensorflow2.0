@@ -8,7 +8,7 @@ import tensorflow as tf
 from utils import Mask, CustomSchedule, Trainer
 from data_loader import DataLoader
 import datetime
-from model import *
+from model import Transformer
 
 # hyper paramaters
 TRAIN_RATIO = 1.0
