@@ -61,10 +61,10 @@ trainer.checkpoint.restore(
 )
 
 
-def do_translate(input):
-    index = input[0]
-    source = input[1][0]
-    target = input[1][1]
+def do_translate(input_data):
+    index = input_data[0]
+    source = input_data[1][0]
+    target = input_data[1][1]
     print(index)
     output = translate(source, data_loader, trainer, SEQ_MAX_LEN_TARGET)
     return {
@@ -76,11 +76,11 @@ def do_translate(input):
 
 translated_data = []
 
-for input in data:
-    res = do_translate(input)
+for test_data in data:
+    res = do_translate(test_data)
     translated_data.append(res['output'])
 
 with open('translated_data', 'w') as f:
-    f.write('\n'.join(translated_data))
+    f.write(str('\n'.join(translated_data)))
 
 score, report = calculate_bleu_score(target_path='translated_data', ref_path=target_data_path)
