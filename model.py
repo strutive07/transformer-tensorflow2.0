@@ -22,8 +22,8 @@ class Transformer(tf.keras.Model):
         self.encoder_count = encoder_count
         self.decoder_count = decoder_count
         self.attention_head_count = attention_head_count
-        self.d_model = d_model,
-        self.d_point_wise_ff = d_point_wise_ff,
+        self.d_model = d_model
+        self.d_point_wise_ff = d_point_wise_ff
         self.dropout_prob = dropout_prob
 
         self.encoder_embedding_layer = Embeddinglayer(input_vocab_size, d_model)
