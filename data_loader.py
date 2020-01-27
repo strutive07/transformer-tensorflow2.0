@@ -2,10 +2,11 @@ import os
 import pickle
 from urllib.request import urlretrieve
 
-from tqdm import tqdm
-import tensorflow as tf
 import sentencepiece
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+
 
 class DataLoader:
     DIR = None

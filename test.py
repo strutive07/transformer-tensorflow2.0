@@ -1,7 +1,7 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-import time
-import datetime
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
+import datetime
 # colab mode
 # try:
 #     %tensorflow_version 2.x
@@ -9,14 +9,17 @@ import datetime
 #     pass
 # !pip install tensorflow_probability==0.8.0rc0 --upgrade
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import pickle
+import time
 
 import numpy as np
 import tensorflow as tf
-from utils import Mask, CustomSchedule, Trainer, translate
 from data_loader import DataLoader
-import datetime
 from model import Transformer
+from utils import CustomSchedule, Mask, Trainer, translate
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 # hyper paramaters
 TRAIN_RATIO = 0.9
@@ -86,6 +89,5 @@ for input in data:
     res = do_translate(input)
     translated_data.append(res)
 
-import pickle
 with open('translated_data.pickle', 'wb') as f:
     pickle.dump(translated_data, f)

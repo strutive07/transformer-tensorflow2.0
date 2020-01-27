@@ -1,7 +1,9 @@
-import os
-import tensorflow as tf
-import time
 import datetime
+import os
+import time
+
+import tensorflow as tf
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 

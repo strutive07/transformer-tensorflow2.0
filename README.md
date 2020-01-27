@@ -101,4 +101,3 @@ dataset, val_dataset = data_loader.load(custom_dataset=True)
 | newstest2013 | 23.3       |
 | newstest2014 | 22.85      |
 | newstest2015 | 25.33      |
-

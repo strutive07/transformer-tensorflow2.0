@@ -1,14 +1,17 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
+import datetime
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import numpy as np
 import tensorflow as tf
-from utils import Mask, CustomSchedule, Trainer
 from data_loader import DataLoader
-import datetime
 from model import Transformer
+from utils import CustomSchedule, Mask, Trainer
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 # hyper paramaters
 TRAIN_RATIO = 1.0
