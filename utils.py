@@ -122,9 +122,9 @@ class Trainer:
 
             for (batch, (input, target)) in enumerate(self.dataset):
                 if is_distributed:
-                    loss = self.distributed_train_step(input, target)
+                    self.distributed_train_step(input, target)
                 else:
-                    loss = self.train_step(input, target)
+                    self.train_step(input, target)
 
                 self.checkpoint.step.assign_add(1)
                 if batch % 50 == 0:
@@ -222,7 +222,7 @@ def translate(input, data_loader, trainer, seq_max_len_target=100):
     decoder_input = tf.expand_dims(decoder_input, 0)
     decoder_end_token = data_loader.dictionary['target']['token2idx']['</s>']
 
-    for i in range(seq_max_len_target):
+    for _ in range(seq_max_len_target):
         encoder_padding_mask, look_ahead_mask, decoder_padding_mask = Mask.create_masks(
             encoder_input, decoder_input
         )
