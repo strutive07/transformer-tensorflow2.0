@@ -8,7 +8,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class Transformer(tf.keras.Model):
     def __init__(self,
-                 input_vocab_size,
+                 inputs_vocab_size,
                  target_vocab_size,
                  encoder_count,
                  decoder_count,
@@ -26,7 +26,7 @@ class Transformer(tf.keras.Model):
         self.d_point_wise_ff = d_point_wise_ff
         self.dropout_prob = dropout_prob
 
-        self.encoder_embedding_layer = Embeddinglayer(input_vocab_size, d_model)
+        self.encoder_embedding_layer = Embeddinglayer(inputs_vocab_size, d_model)
         self.encoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
         self.decoder_embedding_layer = Embeddinglayer(target_vocab_size, d_model)
         self.decoder_embedding_dropout = tf.keras.layers.Dropout(dropout_prob)
@@ -52,18 +52,18 @@ class Transformer(tf.keras.Model):
         self.linear = tf.keras.layers.Dense(target_vocab_size)
 
     def call(self,
-             input,
+             inputs,
              target,
-             input_padding_mask,
+             inputs_padding_mask,
              look_ahead_mask,
              target_padding_mask,
              training
              ):
-        encoder_tensor = self.encoder_embedding_layer(input)
+        encoder_tensor = self.encoder_embedding_layer(inputs)
         encoder_tensor = self.encoder_embedding_dropout(encoder_tensor, training=training)
 
         for i in range(self.encoder_count):
-            encoder_tensor, _ = self.encoder_layers[i](encoder_tensor, input_padding_mask, training=training)
+            encoder_tensor, _ = self.encoder_layers[i](encoder_tensor, inputs_padding_mask, training=training)
         target = self.decoder_embedding_layer(target)
         decoder_tensor = self.decoder_embedding_dropout(target, training=training)
         for i in range(self.decoder_count):
@@ -98,14 +98,14 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.dropout_2 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
-    def call(self, input, mask, training):
-        output, attention = self.multi_head_attention(input, input, input, mask)
+    def call(self, inputs, mask, training):
+        output, attention = self.multi_head_attention(inputs, inputs, inputs, mask)
         output = self.dropout_1(output, training=training)
-        output = self.layer_norm_1(tf.add(input, output))  # residual network
+        output = self.layer_norm_1(tf.add(inputs, output))  # residual network
 
         output = self.position_wise_feed_forward_layer(output)
         output = self.dropout_2(output, training=training)
-        output = self.layer_norm_2(tf.add(input, output))  # residual network
+        output = self.layer_norm_2(tf.add(inputs, output))  # residual network
 
         return output, attention
 
@@ -135,15 +135,15 @@ class DecoderLayer(tf.keras.layers.Layer):
         self.dropout_3 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
-    def call(self, decoder_input, encoder_output, look_ahead_mask, padding_mask, training):
+    def call(self, decoder_inputs, encoder_output, look_ahead_mask, padding_mask, training):
         output, attention_1 = self.masked_multi_head_attention(
-            decoder_input,
-            decoder_input,
-            decoder_input,
+            decoder_inputs,
+            decoder_inputs,
+            decoder_inputs,
             look_ahead_mask
         )
         output = self.dropout_1(output, training=training)
-        query = self.layer_norm_1(tf.add(decoder_input, output))  # residual network
+        query = self.layer_norm_1(tf.add(decoder_inputs, output))  # residual network
         output, attention_2 = self.encoder_decoder_attention(
             query,
             encoder_output,
@@ -166,10 +166,10 @@ class PositionWiseFeedForwardLayer(tf.keras.layers.Layer):
         self.w_1 = tf.keras.layers.Dense(d_point_wise_ff)
         self.w_2 = tf.keras.layers.Dense(d_model)
 
-    def call(self, input):
-        input = self.w_1(input)
-        input = tf.nn.relu(input)
-        return self.w_2(input)
+    def call(self, inputs):
+        inputs = self.w_1(inputs)
+        inputs = tf.nn.relu(inputs)
+        return self.w_2(inputs)
 
 
 class MultiHeadAttention(tf.keras.layers.Layer):
@@ -214,7 +214,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return self.ff(output), attention
 
     def split_head(self, tensor, batch_size):
-        # input tensor: (batch_size, seq_len, d_model)
+        # inputs tensor: (batch_size, seq_len, d_model)
         return tf.transpose(
             tf.reshape(
                 tensor,
