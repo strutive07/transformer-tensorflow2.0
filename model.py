@@ -87,14 +87,13 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.d_point_wise_ff = d_point_wise_ff
         self.dropout_prob = dropout_prob
 
-        self.multi_head_attention = MultiHeadAttention(attention_head_count, d_model, dropout_prob)
+        self.multi_head_attention = MultiHeadAttention(attention_head_count, d_model)
         self.dropout_1 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
         self.position_wise_feed_forward_layer = PositionWiseFeedForwardLayer(
             d_point_wise_ff,
-            d_model,
-            dropout_prob
+            d_model
         )
         self.dropout_2 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
@@ -121,18 +120,17 @@ class DecoderLayer(tf.keras.layers.Layer):
         self.d_point_wise_ff = d_point_wise_ff
         self.dropout_prob = dropout_prob
 
-        self.masked_multi_head_attention = MultiHeadAttention(attention_head_count, d_model, dropout_prob)
+        self.masked_multi_head_attention = MultiHeadAttention(attention_head_count, d_model)
         self.dropout_1 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
-        self.encoder_decoder_attention = MultiHeadAttention(attention_head_count, d_model, dropout_prob)
+        self.encoder_decoder_attention = MultiHeadAttention(attention_head_count, d_model)
         self.dropout_2 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
         self.position_wise_feed_forward_layer = PositionWiseFeedForwardLayer(
             d_point_wise_ff,
-            d_model,
-            dropout_prob
+            d_model
         )
         self.dropout_3 = tf.keras.layers.Dropout(dropout_prob)
         self.layer_norm_3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
@@ -163,7 +161,7 @@ class DecoderLayer(tf.keras.layers.Layer):
 
 
 class PositionWiseFeedForwardLayer(tf.keras.layers.Layer):
-    def __init__(self, d_point_wise_ff, d_model, dropout_prob):
+    def __init__(self, d_point_wise_ff, d_model):
         super(PositionWiseFeedForwardLayer, self).__init__()
         self.w_1 = tf.keras.layers.Dense(d_point_wise_ff)
         self.w_2 = tf.keras.layers.Dense(d_model)
@@ -175,13 +173,12 @@ class PositionWiseFeedForwardLayer(tf.keras.layers.Layer):
 
 
 class MultiHeadAttention(tf.keras.layers.Layer):
-    def __init__(self, attention_head_count, d_model, dropout_prob):
+    def __init__(self, attention_head_count, d_model):
         super(MultiHeadAttention, self).__init__()
 
         # model hyper parameter variables
         self.attention_head_count = attention_head_count
         self.d_model = d_model
-        self.dropout_prob = dropout_prob
 
         if d_model % attention_head_count != 0:
             raise ValueError(
