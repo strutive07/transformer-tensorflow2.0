@@ -78,7 +78,6 @@ class Trainer:
         self.dataset = dataset
 
         os.makedirs(self.checkpoint_dir, exist_ok=True)
-        #         self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer, model=self.model)
         if self.optimizer is None:
             self.checkpoint = tf.train.Checkpoint(step=tf.Variable(1), model=self.model)
         else:
