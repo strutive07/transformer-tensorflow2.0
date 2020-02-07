@@ -7,6 +7,7 @@
 [colab guide](https://colab.research.google.com/github/strutive07/transformer-tensorflow2.0/blob/master/transformer_implement_tf2_0.ipynb)
 
 [Download pre-trained model(checkpoint)](https://drive.google.com/file/d/1jsY7WMI9EU5ifhcxV_sMpK8znPA1mvkf/view?usp=sharing)
+[Download pre-trained bpe data](https://drive.google.com/drive/folders/1YUABrVUz3oGKgGfMJNWQl0WCP_nVjhiS?usp=sharing)
 
 [![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/strutive07/transformer-tensorflow2.0/?ref=repository-badge)
 
@@ -15,7 +16,7 @@
 1. Install enviornments
 
     bash ubuntu16_04_cuda10_cudnn7_tensorflow2.0_install.sh
-
+    
 2. Training
 
 - Single GPU training
@@ -36,6 +37,9 @@
     python distributed_train.py
     ```
 
+3. Test
+- if you did not train bpe, train bpe model or download pre-trained bpe model. LINK: [Download pre-trained bpe data](https://drive.google.com/drive/folders/1YUABrVUz3oGKgGfMJNWQl0WCP_nVjhiS?usp=sharing). You should save it in *top dataset directory*.
+example: ./dataset/rain.en.segmented.vocab and so on.
 
 
 ## How to add dataset
