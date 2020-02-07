@@ -73,10 +73,10 @@ class DataLoader:
 
     def load(self, custom_dataset=False):
         if custom_dataset:
+            print('#1 use custom dataset. please implement custom download_dataset function.')
+        else:            
             print('#1 download data')
             self.download_dataset()
-        else:
-            print('#1 use custom dataset.')
 
         print('#2 parse data')
         source_data = self.parse_data_and_save(self.PATHS['source_data'])
@@ -156,15 +156,16 @@ class DataLoader:
         return train_dataset, val_dataset
 
     def load_test(self, index=0, custom_dataset=False):
+        
         if index < 0 or index >= len(self.CONFIG[self.DATASET]['test_files']) // 2:
             raise ValueError('test file index out of range. min: 0, max: {}'.format(
                 len(self.CONFIG[self.DATASET]['test_files']) // 2 - 1)
             )
         if custom_dataset:
+            print('#1 use custom dataset. please implement custom download_dataset function.')
+        else:
             print('#1 download data')
             self.download_dataset()
-        else:
-            print('#1 use custom dataset.')
 
         print('#2 parse data')
 
