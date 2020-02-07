@@ -39,7 +39,7 @@
 
 3. Test
 - if you did not train bpe, train bpe model or download pre-trained bpe model. LINK: [Download pre-trained bpe data](https://drive.google.com/drive/folders/1YUABrVUz3oGKgGfMJNWQl0WCP_nVjhiS?usp=sharing). You should save it in *top dataset directory*.
-example: ./dataset/rain.en.segmented.vocab and so on.
+example: ./dataset/train.en.segmented.vocab and so on.
 
 
 ## How to add dataset
