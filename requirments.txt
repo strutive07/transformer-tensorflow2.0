@@ -1,0 +1,5 @@
+jupyter==1.0.0
+scikit-learn==0.21.3
+sentencepiece==0.1.83
+tensorflow-gpu==2.1.0rc1
+tqdm==4.35.0

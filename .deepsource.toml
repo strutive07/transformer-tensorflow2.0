@@ -1,0 +1,7 @@
+  version = 1
+
+  [[analyzers]]
+  name = "python"
+  enabled = true
+  max_line_length = 120
+  runtime_version = "3.x.x"
