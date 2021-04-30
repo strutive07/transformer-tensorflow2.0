@@ -102,10 +102,11 @@ class EncoderLayer(tf.keras.layers.Layer):
         output, attention = self.multi_head_attention(inputs, inputs, inputs, mask)
         output = self.dropout_1(output, training=training)
         output = self.layer_norm_1(tf.add(inputs, output))  # residual network
+        output_temp = output
 
         output = self.position_wise_feed_forward_layer(output)
         output = self.dropout_2(output, training=training)
-        output = self.layer_norm_2(tf.add(inputs, output))  # residual network
+        output = self.layer_norm_2(tf.add(output_temp, output)) #correct
 
         return output, attention
 
